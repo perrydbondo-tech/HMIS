@@ -1,0 +1,3260 @@
+---
+
+## ✅ Pre‐requisites
+
+Before you start, make sure you have:
+
+* A running PostgreSQL server and the ability to create a database.
+* Python 3 version compatible with Odoo 19 (check the official docs).
+* Admin access to your machine or instance to install packages.
+* VS Code installed.
+* Basic familiarity with Odoo module structure (models, views, manifest). The official Odoo docs for version 19 have a “Server framework 101” tutorial. ([Odoo][1])
+
+---
+
+## 🛠 Step-by-Step Setup
+
+### 1. Clone Odoo source + setup workspace
+
+1. Create a workspace folder, e.g.:
+
+   ```bash
+   mkdir ~/odoo19_dev
+   cd ~/odoo19_dev
+   ```
+2. Clone the Odoo 19 source (assuming you want community edition)
+
+   ```bash
+   git clone https://github.com/odoo/odoo.git --branch 19.0 --single-branch odoo-19
+   ```
+3. Create your custom_addons folder:
+
+   ```bash
+   mkdir custom_addons
+   ```
+4. Set up a Python virtual environment and install requirements:
+
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install --upgrade pip
+   pip install -r odoo-19/requirements.txt
+   ```
+
+   This mirrors a gist example that shows how to set up environments for multiple Odoo versions. ([Gist][2])
+
+---
+
+### 2. Configure `odoo.conf`
+
+Create a config file, e.g., `~/odoo19_dev/odoo.conf` with contents like:
+
+```ini
+[options]
+addons_path = ~/odoo19_dev/odoo-19/addons,~/odoo19_dev/custom_addons
+db_host = localhost
+db_port = 5432
+db_user = myuser
+db_password = mypassword
+http_port = 8069
+log_level = debug
+```
+
+Adjust `db_user`, `db_password` as per your PostgreSQL setup.
+Ensure that the addons_path includes your custom_addons folder so that your modules show up.
+
+---
+
+### 3. Open VS Code and install extensions
+
+Open VS Code in your workspace folder (`~/odoo19_dev`).
+Go to Extensions panel and install:
+
+* **Python** (by Microsoft) – needed for Python editing & debugging.
+* **Odoo Helper / Odoo Snippets** (e.g., Assista IDE for Odoo in VS Code) which provides module scaffolding, snippets, smart suggestions. ([Cybrosys Assista][3])
+* (Optional) GitLens or similar for version control.
+
+Once installed, restart VS Code to ensure extensions load.
+
+---
+
+### 4. Create your first module scaffold
+
+Using the Odoo helper (Assista) extension:
+
+* Right-click on the `custom_addons` folder in VS Code → **Create Odoo Module** (or whatever command the extension offers). ([Cybrosys Assista][4])
+* Enter a module name, say `my_first_module`.
+* It will create the folder structure: `__manifest__.py`, `models/`, `views/`, `security/`, etc.
+* Open `__manifest__.py` and fill in metadata (name, version, depends, data, etc.).
+
+---
+
+### 5. Write simple code: Add a model and a view
+
+Within `my_first_module/models/`, create a file `my_model.py`:
+
+```python
+from odoo import models, fields
+
+class MyFirstModel(models.Model):
+    _name = 'my.first.model'
+    _description = 'My First Model'
+
+    name = fields.Char(string='Name', required=True)
+    description = fields.Text(string='Description')
+```
+
+In `views/my_first_model_view.xml`:
+
+```xml
+<odoo>
+  <record id="view_my_first_model_form" model="ir.ui.view">
+    <field name="name">my.first.model.form</field>
+    <field name="model">my.first.model</field>
+    <field name="arch" type="xml">
+      <form string="My First Model">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="description"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <menuitem id="menu_my_first_model_root" name="My First Module"/>
+  <menuitem id="menu_my_first_model" name="My First Model" parent="menu_my_first_model_root" action="action_my_first_model"/>
+
+  <record id="action_my_first_model" model="ir.actions.act_window">
+    <field name="name">My First Model</field>
+    <field name="res_model">my.first.model</field>
+    <field name="view_mode">tree,form</field>
+    <field name="view_id" ref="view_my_first_model_form"/>
+  </record>
+</odoo>
+```
+
+Add the XML file to `data` key in `__manifest__.py`.
+
+---
+
+### 6. Run Odoo in development mode & connect to VS Code for debugging
+
+1. In VS Code, create a file `.vscode/launch.json` in your workspace with something like:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Odoo 19",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/odoo-19/odoo-bin",
+      "console": "integratedTerminal",
+      "args": [
+        "-c", "${workspaceFolder}/odoo.conf",
+        "--dev", "xml,py"
+      ],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
+```
+
+This config lets you launch Odoo via VS Code’s Run & Debug. You can set breakpoints in your model/view code and step through. (The gist example shows similar for earlier versions. ([Gist][2]) )
+2. In the integrated terminal (or run via VS Code), start Odoo.
+3. Open browser `http://localhost:8069`, create a new database or use existing.
+4. Install your module `my_first_module` via Apps (enable Developer mode).
+5. Now you can test your module, create records, etc. If you set a breakpoint in `my_model.py`, VS Code should pause when the code is executed (e.g., when creating a new record).
+
+---
+
+### 7. Development workflow & tips
+
+* Each time you change code or XML, you may need to **Upgrade** your module (via Apps → Upgrade) or run Odoo with `-u my_first_module`.
+* Use the Dev Mode in Odoo UI to inspect models, fields, view architecture, and easier debugging.
+* Use the “--dev xml,py” flags (in your launch args) so Odoo reloads XML/templates and Python code without full restart.
+* Use the Odoo helper extension’s snippets for quickly generating models/views (`odoo model`, `odoo view` etc) to save time.
+* Version control your custom_addons folder with Git so you can track changes, branch, revert, etc.
+
+---
+
+## 🔍 References & Good Reading
+
+* The official Odoo 19 Tutorials page (Server and Web frameworks) in the documentation: ([Odoo][1])
+* The “Master the web framework” tutorial for Odoo 19 that covers advanced UI/Web components: ([Odoo][5])
+* Quick start guide for the VS Code extension (Assista) for Odoo development: ([Cybrosys Assista][4])
+
+---
+
+If you like, I can compile a **downloadable ZIP** containing a ready-to-go minimal Odoo 19 + VS Code dev environment (with `launch.json`, `tasks.json`, sample module) that you can drop into your machine and start from. Would that be helpful?
+
+[1]: https://www.odoo.com/documentation/19.0/developer/tutorials.html?utm_source=chatgpt.com "Tutorials — Odoo 19.0 documentation"
+[2]: https://gist.github.com/rafnixg/eacb195add83da3fb8fb514064a78288?utm_source=chatgpt.com "Configure Odoo for Development enviroment in VSCode · GitHub"
+[3]: https://assista.cybrosys.com/vs-code-extension/?utm_source=chatgpt.com "Odoo Helper for VS Code | Cybrosys Assista"
+[4]: https://docs.cybrosys.com/vs-code-extension/quick-start?utm_source=chatgpt.com "Quick Start | Cybrosys Assista"
+[5]: https://www.odoo.com/documentation/19.0/developer/tutorials/master_odoo_web_framework.html?utm_source=chatgpt.com "Master the web framework — Odoo 19.0 documentation"
+
+
+
+NEW*********NEW*********NEW
+
+I'll help you understand how to work with Odoo 19 from Visual Studio Code. Here are the main approaches:
+
+## 1. Access Odoo Source Code in VS Code
+
+### Clone/Open Odoo Project
+```bash
+# Clone Odoo source code
+git clone https://github.com/odoo/odoo.git
+cd odoo
+git checkout 19.0
+```
+
+### Open in VS Code
+```bash
+code .
+```
+
+## 2. Key Directories to Explore
+
+```
+odoo-19.0/
+├── addons/          # Core Odoo modules
+├── odoo/           # Odoo framework core
+├── odoo-bin        # Odoo executable
+└── setup/          # Installation scripts
+```
+
+## 3. Useful VS Code Extensions
+
+- **Python** (Microsoft)
+- **XML** (Red Hat)
+- **Python Docstring Generator**
+- **GitLens**
+- **Docker** (if using containers)
+
+## 4. Common Development Tasks
+
+### Debug Configuration (launch.json)
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Odoo 19 Debug",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/odoo-bin",
+            "args": [
+                "--config", "${workspaceFolder}/odoo.conf",
+                "--addons-path", "addons,../custom_addons"
+            ],
+            "console": "integratedTerminal"
+        }
+    ]
+}
+```
+
+### Sample odoo.conf
+```ini
+[options]
+addons_path = /path/to/odoo/addons,/path/to/custom_addons
+db_host = localhost
+db_port = 5432
+db_user = odoo
+db_password = password
+xmlrpc_port = 8069
+```
+
+## 5. Useful Odoo 19 Links
+
+### Official Documentation
+- **Odoo 19 Documentation**: https://www.odoo.com/documentation/19.0/
+- **Odoo Studio**: https://www.odoo.com/page/studio
+- **API Reference**: https://www.odoo.com/documentation/19.0/developer/reference/external_api.html
+
+### Development Resources
+- **Odoo GitHub**: https://github.com/odoo/odoo
+- **Odoo Community Association**: https://odoo-community.org/
+- **Odoo Forum**: https://www.odoo.com/forum/help-1
+
+### Learning Resources
+- **Odoo Master Courses**: https://www.odoo.com/slides
+- **Technical Training**: https://www.odoo.com/page/technical-training
+- **Developer Tutorials**: https://www.odoo.com/documentation/19.0/developer/howtos.html
+
+## 6. Common VS Code Snippets for Odoo
+
+### Python Model Snippet
+```python
+from odoo import models, fields, api
+
+class YourModel(models.Model):
+    _name = 'your.model'
+    _description = 'Your Model Description'
+    
+    name = fields.Char(string='Name', required=True)
+    value = fields.Float(string='Value')
+    
+    @api.depends('value')
+    def _compute_display_name(self):
+        for record in self:
+            record.display_name = f"{record.name} ({record.value})"
+```
+
+### XML View Snippet
+```xml
+<record id="view_form_your_model" model="ir.ui.view">
+    <field name="name">your.model.form</field>
+    <field name="model">your.model</field>
+    <field name="arch" type="xml">
+        <form>
+            <sheet>
+                <group>
+                    <field name="name"/>
+                    <field name="value"/>
+                </group>
+            </sheet>
+        </form>
+    </field>
+</record>
+```
+
+## 7. Terminal Commands for Odoo Development
+
+```bash
+# Run Odoo with specific database
+./odoo-bin -d my_database --db-filter=my_database
+
+# Install a specific module
+./odoo-bin -d my_database -i module_name --stop-after-init
+
+# Update a module
+./odoo-bin -d my_database -u module_name --stop-after-init
+
+# Run with development mode
+./odoo-bin -d my_database --dev=all
+```
+
+## 8. Database Access
+
+### PostgreSQL Connection
+```bash
+psql -h localhost -U odoo -d your_database_name
+```
+
+### Common Database Queries
+```sql
+-- List installed modules
+SELECT name FROM ir_module_module WHERE state = 'installed';
+
+-- Check users
+SELECT login, name FROM res_users;
+```
+
+Would you like me to elaborate on any specific aspect of Odoo 19 development in VS Code?
+
+
+
+
+**********AUTOMATION CODE************
+
+
+## 🧩 1. SIMPLE AUTOMATIONS (Server Actions / Automated Actions)
+
+These are the automations you can create from the Odoo UI:
+**Settings → Technical → Automation → Automated Actions**
+
+### 🔹 Example 1: Send an Email When a Sale Order is Confirmed
+
+**Trigger:** `On Creation & Update`
+**Model:** `Sales Order` (`sale.order`)
+**Condition:** `state == 'sale'`
+**Action:** Send an Email
+
+**Python Code (in Server Action):**
+
+```python
+if record.state == 'sale':
+    template = env.ref('sale.email_template_edi_sale')
+    template.send_mail(record.id, force_send=True)
+```
+
+---
+
+### 🔹 Example 2: Auto Assign Salesperson to New Customer
+
+**Model:** `res.partner`
+**Trigger:** On Creation
+**Action:** Update a field
+
+**Python Code:**
+
+```python
+record.user_id = env.user
+```
+
+---
+
+### 🔹 Example 3: Automatically Set Default Stage for CRM Lead
+
+**Model:** `crm.lead`
+**Trigger:** On Creation
+
+**Python Code:**
+
+```python
+default_stage = env['crm.stage'].search([], limit=1)
+record.stage_id = default_stage.id
+```
+
+---
+
+## ⚙️ 2. ADVANCED AUTOMATIONS (Custom Server Actions, Python Logic, or Scheduled Jobs)
+
+For more complex automation, you can use **Automated Actions**, **Scheduled Actions (Cron Jobs)**, or **Custom Python Modules**.
+
+---
+
+### 🔹 Example 1: Automatically Archive Inactive Customers (Cron Job)
+
+**Model:** `res.partner`
+**Type:** Scheduled Action (Technical → Automation → Scheduled Actions)
+
+**Python Code:**
+
+```python
+inactive_customers = env['res.partner'].search([('sale_order_count', '=', 0)])
+inactive_customers.write({'active': False})
+```
+
+---
+
+### 🔹 Example 2: Create Invoice Automatically After Delivery Validation
+
+**Model:** `stock.picking`
+**Trigger:** On Update
+**Condition:** `state == 'done'`
+
+**Python Code:**
+
+```python
+if record.picking_type_id.code == 'outgoing':
+    sale_order = record.sale_id
+    if sale_order and sale_order.invoice_status != 'invoiced':
+        sale_order._create_invoices()
+```
+
+---
+
+### 🔹 Example 3: Notify Slack When High-Value Sale Order is Confirmed
+
+**Model:** `sale.order`
+**Trigger:** On Update
+
+**Python Code:**
+
+```python
+import requests
+if record.state == 'sale' and record.amount_total > 10000:
+    webhook_url = "https://hooks.slack.com/services/XXXX/XXXX/XXXX"
+    message = {
+        "text": f"🎉 Big Sale Confirmed! {record.name} worth {record.amount_total} confirmed by {record.user_id.name}"
+    }
+    requests.post(webhook_url, json=message)
+```
+
+✅ Works on both **Odoo On-Premise** and **Odoo.sh** (requires `requests` installed or available in environment).
+
+---
+
+## 🌐 3. WEBHOOKS (Trigger External URLs or APIs)
+
+Webhooks can be implemented with:
+
+* Server Actions that call `requests.post()` or `requests.get()`
+* Controllers (Python module)
+* Odoo.sh or On-Prem cron tasks
+
+---
+
+### 🔹 Example 1: Send Webhook to External System When Invoice is Paid
+
+**Model:** `account.move`
+**Trigger:** On Update
+**Condition:** `state == 'posted'` and `payment_state == 'paid'`
+
+**Python Code:**
+
+```python
+import requests
+webhook_url = "https://api.example.com/invoice-paid"
+payload = {
+    "invoice_number": record.name,
+    "customer": record.partner_id.name,
+    "amount_total": record.amount_total,
+    "currency": record.currency_id.name
+}
+requests.post(webhook_url, json=payload)
+```
+
+---
+
+### 🔹 Example 2: Custom Controller for Receiving Webhooks
+
+For receiving incoming webhooks (advanced, needs custom module):
+
+**Python Code (inside a custom module):**
+
+```python
+from odoo import http
+from odoo.http import request
+
+class WebhookController(http.Controller):
+
+    @http.route('/webhook/receive', type='json', auth='public', methods=['POST'], csrf=False)
+    def receive_webhook(self, **post):
+        data = request.jsonrequest
+        request.env['crm.lead'].sudo().create({
+            'name': data.get('lead_name', 'New Lead'),
+            'email_from': data.get('email'),
+        })
+        return {"status": "ok"}
+```
+
+✅ Works on **both Odoo.sh and On-Premise**, but on **Odoo.sh**, make sure the route is exposed publicly.
+
+---
+
+## 🧠 4. DIFFERENCES: Odoo On-Premise vs Odoo.sh
+
+| Feature               | Odoo On-Premise    | Odoo.sh                      |
+| --------------------- | ------------------ | ---------------------------- |
+| Access to File System | ✅ Full             | ⚠️ Limited (sandboxed)       |
+| Custom Python Modules | ✅ Allowed          | ✅ Allowed via Git deployment |
+| `requests` library    | ✅ Install manually | ✅ Pre-installed              |
+| External API/Webhooks | ✅ Yes              | ✅ Yes                        |
+| Scheduled Actions     | ✅ Yes              | ✅ Yes                        |
+| Shell Access          | ✅ Yes              | ⚠️ Limited via Odoo.sh shell |
+
+---
+
+## ⚡ 5. Summary
+
+| Type            | Example                              | Runs On |
+| --------------- | ------------------------------------ | ------- |
+| Simple Action   | Auto-send email when order confirmed | Both    |
+| Advanced Action | Auto-create invoice after delivery   | Both    |
+| Webhook Out     | Notify Slack / API                   | Both    |
+| Webhook In      | Receive webhook (custom controller)  | Both    |
+| Cron Job        | Archive inactive customers           | Both    |
+
+---
+
+
+*********** Automations and Integration code***********
+
+This covers **Odoo On-Premise** and **Odoo.sh**, all written in standard Odoo Python syntax for server actions or module-level code.
+
+---
+
+## ⚙️ 1. SALES (sale.order)
+
+### 🧩 **1.1 Auto-send Email on Confirmation**
+
+```python
+if record.state == 'sale':
+    template = env.ref('sale.email_template_edi_sale')
+    template.send_mail(record.id, force_send=True)
+```
+
+---
+
+### 🧩 **1.2 Apply Discount Automatically**
+
+```python
+if record.amount_total > 10000:
+    record.write({'discount_rate': 10})
+```
+
+---
+
+### 🧩 **1.3 Send Slack Notification for High-Value Sale**
+
+```python
+import requests
+if record.state == 'sale' and record.amount_total > 5000:
+    requests.post(
+        "https://hooks.slack.com/services/XXXX/XXXX/XXXX",
+        json={"text": f"🎉 High value sale confirmed: {record.name} = {record.amount_total} {record.currency_id.name}"}
+    )
+```
+
+---
+
+### 🧩 **1.4 Create Delivery Order Automatically**
+
+```python
+if record.state == 'sale':
+    record._action_confirm()
+```
+
+---
+
+## 💼 2. CRM (crm.lead)
+
+### 🧩 **2.1 Auto-assign Salesperson Based on Territory**
+
+```python
+if 'USA' in record.country_id.name:
+    user = env.ref('base.user_admin')  # Example salesperson
+    record.user_id = user.id
+```
+
+---
+
+### 🧩 **2.2 Convert Lead Automatically When Probability > 80%**
+
+```python
+if record.probability >= 80 and not record.partner_id:
+    record.action_convert_to_opportunity()
+```
+
+---
+
+### 🧩 **2.3 Create CRM Lead from Webhook**
+
+(Custom Controller)
+
+```python
+from odoo import http
+from odoo.http import request
+
+class CRMWebhook(http.Controller):
+    @http.route('/crm/webhook', type='json', auth='public', methods=['POST'], csrf=False)
+    def crm_webhook(self, **post):
+        data = request.jsonrequest
+        request.env['crm.lead'].sudo().create({
+            'name': data.get('lead_name', 'New Lead'),
+            'contact_name': data.get('contact_name'),
+            'email_from': data.get('email'),
+            'phone': data.get('phone')
+        })
+        return {'status': 'ok'}
+```
+
+---
+
+## 📦 3. INVENTORY (stock.picking)
+
+### 🧩 **3.1 Auto-create Invoice After Delivery Done**
+
+```python
+if record.state == 'done' and record.picking_type_id.code == 'outgoing':
+    sale_order = record.sale_id
+    if sale_order and sale_order.invoice_status != 'invoiced':
+        sale_order._create_invoices()
+```
+
+---
+
+### 🧩 **3.2 Send Webhook to Update External System When Stock is Updated**
+
+```python
+import requests
+if record.state == 'done':
+    requests.post("https://api.external.com/stock/update", json={
+        'product': record.move_ids_without_package.product_id.name,
+        'quantity': sum(record.move_ids_without_package.mapped('quantity_done')),
+        'warehouse': record.picking_type_id.warehouse_id.name
+    })
+```
+
+---
+
+## 🧾 4. ACCOUNTING (account.move)
+
+### 🧩 **4.1 Auto-send Invoice Email When Validated**
+
+```python
+if record.state == 'posted' and record.move_type == 'out_invoice':
+    template = env.ref('account.email_template_edi_invoice')
+    template.send_mail(record.id, force_send=True)
+```
+
+---
+
+### 🧩 **4.2 Webhook — Notify External System When Invoice Paid**
+
+```python
+import requests
+if record.payment_state == 'paid':
+    requests.post('https://api.example.com/invoice_paid', json={
+        'invoice': record.name,
+        'customer': record.partner_id.name,
+        'total': record.amount_total,
+        'currency': record.currency_id.name
+    })
+```
+
+---
+
+### 🧩 **4.3 Auto-reconcile Incoming Payment**
+
+```python
+if record.move_type == 'entry' and record.amount_total > 0:
+    record._auto_reconcile_lines()
+```
+
+---
+
+## 👥 5. HR (hr.employee, hr.attendance, hr.leave)
+
+### 🧩 **5.1 Send Email to Manager When Employee Requests Leave**
+
+```python
+if record.state == 'confirm':
+    manager = record.employee_id.parent_id
+    if manager and manager.work_email:
+        body = f"{record.employee_id.name} requested leave from {record.request_date_from} to {record.request_date_to}."
+        env['mail.mail'].create({
+            'subject': 'New Leave Request',
+            'email_to': manager.work_email,
+            'body_html': body
+        }).send()
+```
+
+---
+
+### 🧩 **5.2 Auto-approve Leave if Duration ≤ 1 day**
+
+```python
+if record.number_of_days <= 1:
+    record.action_approve()
+```
+
+---
+
+### 🧩 **5.3 Attendance Webhook for External Biometric System**
+
+```python
+from odoo import http
+from odoo.http import request
+
+class AttendanceWebhook(http.Controller):
+    @http.route('/attendance/webhook', type='json', auth='public', csrf=False)
+    def attendance_webhook(self, **post):
+        data = request.jsonrequest
+        employee = request.env['hr.employee'].sudo().search([('barcode', '=', data.get('barcode'))], limit=1)
+        if employee:
+            request.env['hr.attendance'].sudo().create({
+                'employee_id': employee.id,
+                'check_in': data.get('check_in'),
+                'check_out': data.get('check_out')
+            })
+        return {'status': 'ok'}
+```
+
+---
+
+## 🕒 6. SCHEDULED ACTIONS (CRON JOBS)
+
+### 🧩 **6.1 Archive Inactive Customers**
+
+```python
+inactive = env['res.partner'].search([
+    ('sale_order_count', '=', 0),
+    ('create_date', '<', fields.Date.today() - relativedelta(months=6))
+])
+inactive.write({'active': False})
+```
+
+---
+
+### 🧩 **6.2 Send Weekly Sales Summary to Manager**
+
+```python
+manager_email = env.user.company_id.email
+sales = env['sale.order'].search([('state', '=', 'sale')])
+total = sum(sales.mapped('amount_total'))
+body = f"<p>Total Sales this week: {total}</p>"
+
+env['mail.mail'].create({
+    'subject': 'Weekly Sales Summary',
+    'email_to': manager_email,
+    'body_html': body
+}).send()
+```
+
+---
+
+## 🌐 7. GENERAL WEBHOOK / API INTEGRATION PATTERNS
+
+### 🔹 **Outbound Webhook Pattern**
+
+```python
+import requests
+data = {'record_id': record.id, 'model': record._name}
+requests.post('https://api.partner.com/webhook', json=data)
+```
+
+### 🔹 **Inbound Webhook Pattern (Controller)**
+
+```python
+from odoo import http
+from odoo.http import request
+
+class WebhookController(http.Controller):
+    @http.route('/api/webhook', type='json', auth='public', csrf=False)
+    def webhook_receiver(self, **post):
+        data = request.jsonrequest
+        model = data.get('model')
+        payload = data.get('payload')
+        env_model = request.env[model].sudo()
+        env_model.create(payload)
+        return {'status': 'ok'}
+```
+
+---
+
+## ✅ 8. TYPICAL USE CASE SUMMARY BY MODULE
+
+| Module         | Common Automations                        | Integration Examples           |
+| -------------- | ----------------------------------------- | ------------------------------ |
+| **Sales**      | Auto-email, discount rules, Slack alerts  | Webhook for order confirmation |
+| **CRM**        | Auto-assign, lead conversion              | Webhook create leads           |
+| **Inventory**  | Auto-invoice, stock sync                  | Stock level API update         |
+| **Accounting** | Auto-email invoice, webhook on payment    | Sync with external ERP         |
+| **HR**         | Auto-approve short leaves, notify manager | Attendance from biometric API  |
+| **General**    | Scheduled jobs, archiving                 | REST API controllers           |
+
+---
+
+Would you like me to generate a **modular XML + manifest Odoo add-on** containing all of these automations (ready for import into Odoo 17 or 18)?
+I can make it in structure:
+
+```
+/automations_module/
+├── __manifest__.py
+├── data/automations.xml
+├── controllers/webhook_controller.py
+```
+
+*********CODE *************
+Excellent ✅ — here’s your **ready-to-import Odoo 18 module** that bundles all the automations, actions, scheduled jobs, and webhook integrations we discussed.
+
+You can **copy this into a folder** (e.g. `odoo_automations/`), zip it, and install it in **Odoo 18 On-Premise or Odoo.sh**.
+
+---
+
+## 📁 Folder Structure
+
+```
+odoo_automations/
+├── __manifest__.py
+├── __init__.py
+├── data/
+│   └── automations.xml
+└── controllers/
+    └── webhook_controller.py
+```
+
+---
+
+## 🧩 `__manifest__.py`
+
+```python
+{
+    'name': 'Odoo Automations & Integrations Suite',
+    'version': '1.0',
+    'summary': 'Prebuilt automations, actions, and webhook integrations for Odoo 18',
+    'description': """
+This module provides examples of:
+- Automated Server Actions
+- Cron (Scheduled) Jobs
+- Outbound Webhooks (Slack, API)
+- Inbound Webhook Controllers (Lead & Attendance creation)
+    """,
+    'author': 'ChatGPT Automation Suite',
+    'category': 'Automation',
+    'depends': ['base', 'sale', 'crm', 'stock', 'account', 'hr', 'mail'],
+    'data': [
+        'data/automations.xml',
+    ],
+    'application': False,
+    'installable': True,
+    'license': 'LGPL-3',
+}
+```
+
+---
+
+## 🧠 `__init__.py`
+
+```python
+from . import controllers
+```
+
+---
+
+## 🌐 `controllers/webhook_controller.py`
+
+```python
+from odoo import http
+from odoo.http import request
+
+class WebhookController(http.Controller):
+
+    @http.route('/crm/webhook', type='json', auth='public', methods=['POST'], csrf=False)
+    def crm_webhook(self, **post):
+        data = request.jsonrequest
+        request.env['crm.lead'].sudo().create({
+            'name': data.get('lead_name', 'New Lead'),
+            'contact_name': data.get('contact_name'),
+            'email_from': data.get('email'),
+            'phone': data.get('phone')
+        })
+        return {'status': 'ok'}
+
+    @http.route('/attendance/webhook', type='json', auth='public', csrf=False)
+    def attendance_webhook(self, **post):
+        data = request.jsonrequest
+        employee = request.env['hr.employee'].sudo().search([('barcode', '=', data.get('barcode'))], limit=1)
+        if employee:
+            request.env['hr.attendance'].sudo().create({
+                'employee_id': employee.id,
+                'check_in': data.get('check_in'),
+                'check_out': data.get('check_out')
+            })
+        return {'status': 'ok'}
+```
+
+---
+
+## ⚙️ `data/automations.xml`
+
+```xml
+<odoo>
+    <!-- Auto Email on Sale Confirmation -->
+    <record id="action_auto_email_sale_confirm" model="base.automation">
+        <field name="name">Auto Email on Sale Confirmation</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_domain">[('state','=','sale')]</field>
+        <field name="state">code</field>
+        <field name="code">
+            if record.state == 'sale':
+                template = env.ref('sale.email_template_edi_sale')
+                template.send_mail(record.id, force_send=True)
+        </field>
+    </record>
+
+    <!-- Auto-create Invoice after Delivery -->
+    <record id="action_auto_invoice_delivery_done" model="base.automation">
+        <field name="name">Auto-create Invoice after Delivery Done</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_domain">[('state','=','done')]</field>
+        <field name="state">code</field>
+        <field name="code">
+            if record.picking_type_id.code == 'outgoing':
+                sale_order = record.sale_id
+                if sale_order and sale_order.invoice_status != 'invoiced':
+                    sale_order._create_invoices()
+        </field>
+    </record>
+
+    <!-- Slack Notification on High-Value Sale -->
+    <record id="action_slack_notify_high_sale" model="base.automation">
+        <field name="name">Slack Notify on High-Value Sale</field>
+        <field name="model_id" ref="sale.model_sale_order"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_domain">[('state','=','sale')]</field>
+        <field name="state">code</field>
+        <field name="code">
+            import requests
+            if record.amount_total &gt; 10000:
+                webhook_url = "https://hooks.slack.com/services/XXXX/XXXX/XXXX"
+                payload = {"text": f"🎉 High-value Sale: {record.name} = {record.amount_total} {record.currency_id.name}"}
+                requests.post(webhook_url, json=payload)
+        </field>
+    </record>
+
+    <!-- Webhook: Notify External System When Invoice Paid -->
+    <record id="action_webhook_invoice_paid" model="base.automation">
+        <field name="name">Webhook Notify on Invoice Paid</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_domain">[('payment_state','=','paid')]</field>
+        <field name="state">code</field>
+        <field name="code">
+            import requests
+            webhook_url = "https://api.example.com/invoice_paid"
+            payload = {
+                "invoice": record.name,
+                "customer": record.partner_id.name,
+                "total": record.amount_total,
+                "currency": record.currency_id.name
+            }
+            requests.post(webhook_url, json=payload)
+        </field>
+    </record>
+
+    <!-- Archive Inactive Customers (Scheduled Action) -->
+    <record id="ir_cron_archive_inactive_customers" model="ir.cron">
+        <field name="name">Archive Inactive Customers</field>
+        <field name="model_id" ref="base.model_res_partner"/>
+        <field name="state">code</field>
+        <field name="code">
+            from dateutil.relativedelta import relativedelta
+            from datetime import date
+            inactive = env['res.partner'].search([
+                ('sale_order_count','=',0),
+                ('create_date','&lt;', (date.today() - relativedelta(months=6)).isoformat())
+            ])
+            inactive.write({'active': False})
+        </field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+    </record>
+
+    <!-- Auto-approve short HR leaves -->
+    <record id="action_auto_approve_short_leave" model="base.automation">
+        <field name="name">Auto-Approve Short Leave</field>
+        <field name="model_id" ref="hr_holidays.model_hr_leave"/>
+        <field name="trigger">on_create</field>
+        <field name="state">code</field>
+        <field name="code">
+            if record.number_of_days &lt;= 1:
+                record.action_approve()
+        </field>
+    </record>
+
+</odoo>
+```
+
+---
+
+## 🧰 How to Install
+
+1. Create a folder named **`odoo_automations`**.
+2. Place the above files in it with the folder structure shown.
+3. Zip the folder or push it to your **Odoo.sh repository** under `/custom-addons/`.
+4. Update the Apps list in Odoo and install **“Odoo Automations & Integrations Suite”**.
+5. Update your Slack and API webhook URLs where needed.
+
+---
+
+## 🚀 Included Features Summary
+
+| Feature                         | Type          | Model                 | Purpose                                  |
+| ------------------------------- | ------------- | --------------------- | ---------------------------------------- |
+| Auto Email on Sale Confirmation | Server Action | `sale.order`          | Notify customers automatically           |
+| Auto Invoice After Delivery     | Server Action | `stock.picking`       | Automate invoicing post-delivery         |
+| Slack Notification on High Sale | Webhook Out   | `sale.order`          | Alert sales team on big deals            |
+| Invoice Paid Webhook            | Webhook Out   | `account.move`        | Notify external system when invoice paid |
+| Archive Inactive Customers      | Scheduled Job | `res.partner`         | Auto-clean inactive records              |
+| Auto-Approve Short Leave        | Server Action | `hr.leave`            | HR workflow simplification               |
+| CRM Webhook Receiver            | Controller    | `/crm/webhook`        | Receive external lead data               |
+| Attendance Webhook Receiver     | Controller    | `/attendance/webhook` | Sync attendance from external system     |
+
+---
+
+
+*************EMPLOYEES AND ACCOUNTING AUTOMATION AND ACTION CODE*************
+Perfect ✅ — below is a **ready-to-import Odoo 18 module** designed specifically for **Employees (HR)** and **Accounting** applications.
+
+This add-on includes **automations, server actions, scheduled jobs, and webhook integrations** for HR and Accounting — covering payroll notifications, leave approvals, invoice events, payment tracking, and external API syncs.
+
+---
+
+## 📁 Folder Structure
+
+```
+employee_accounting_automation/
+├── __manifest__.py
+├── __init__.py
+├── data/
+│   └── automations.xml
+└── controllers/
+    └── webhook_controller.py
+```
+
+---
+
+## 🧩 `__manifest__.py`
+
+```python
+{
+    'name': 'Employee & Accounting Automation Suite',
+    'version': '1.0',
+    'summary': 'Automations, actions, and webhooks for Employees and Accounting modules in Odoo 18',
+    'description': """
+This module provides:
+- HR leave approval and notification automations
+- Attendance and payroll webhook integrations
+- Invoice and payment automations for accounting
+- External webhook connectors for financial data sync
+    """,
+    'author': 'ChatGPT Automations',
+    'category': 'Human Resources/Accounting',
+    'depends': ['base', 'hr', 'hr_holidays', 'hr_attendance', 'account', 'mail'],
+    'data': [
+        'data/automations.xml',
+    ],
+    'application': False,
+    'installable': True,
+    'license': 'LGPL-3',
+}
+```
+
+---
+
+## 🧠 `__init__.py`
+
+```python
+from . import controllers
+```
+
+---
+
+## 🌐 `controllers/webhook_controller.py`
+
+```python
+from odoo import http
+from odoo.http import request
+
+class HRAccountingWebhook(http.Controller):
+
+    # ✅ HR Attendance Webhook: sync from external biometric system
+    @http.route('/webhook/attendance', type='json', auth='public', csrf=False)
+    def attendance_webhook(self, **post):
+        data = request.jsonrequest
+        employee = request.env['hr.employee'].sudo().search([('barcode', '=', data.get('barcode'))], limit=1)
+        if employee:
+            request.env['hr.attendance'].sudo().create({
+                'employee_id': employee.id,
+                'check_in': data.get('check_in'),
+                'check_out': data.get('check_out')
+            })
+        return {'status': 'ok', 'employee_found': bool(employee)}
+
+    # ✅ Accounting Webhook: push invoice or payment data from external ERP
+    @http.route('/webhook/accounting_sync', type='json', auth='public', csrf=False)
+    def accounting_sync(self, **post):
+        data = request.jsonrequest
+        if data.get('model') == 'invoice':
+            request.env['account.move'].sudo().create({
+                'move_type': 'out_invoice',
+                'partner_id': data['partner_id'],
+                'invoice_date': data['invoice_date'],
+                'invoice_line_ids': [(0, 0, {
+                    'name': data['description'],
+                    'quantity': 1.0,
+                    'price_unit': data['amount']
+                })]
+            })
+        elif data.get('model') == 'payment':
+            request.env['account.payment'].sudo().create({
+                'partner_id': data['partner_id'],
+                'amount': data['amount'],
+                'payment_type': 'inbound',
+                'payment_method_id': request.env.ref('account.account_payment_method_manual_in').id,
+                'journal_id': request.env['account.journal'].search([], limit=1).id,
+            })
+        return {'status': 'success'}
+```
+
+---
+
+## ⚙️ `data/automations.xml`
+
+```xml
+<odoo>
+
+    <!-- 🔹 Auto-Approve Short Leave (HR) -->
+    <record id="auto_approve_short_leave" model="base.automation">
+        <field name="name">Auto-Approve Short Leave</field>
+        <field name="model_id" ref="hr_holidays.model_hr_leave"/>
+        <field name="trigger">on_create</field>
+        <field name="state">code</field>
+        <field name="code">
+            if record.number_of_days &lt;= 1:
+                record.action_approve()
+        </field>
+    </record>
+
+    <!-- 🔹 Notify Manager on Leave Request -->
+    <record id="notify_manager_leave_request" model="base.automation">
+        <field name="name">Notify Manager on Leave Request</field>
+        <field name="model_id" ref="hr_holidays.model_hr_leave"/>
+        <field name="trigger">on_create</field>
+        <field name="state">code</field>
+        <field name="code">
+            manager = record.employee_id.parent_id
+            if manager and manager.work_email:
+                subject = f"Leave Request from {record.employee_id.name}"
+                body = f"&lt;p&gt;{record.employee_id.name} requested leave from {record.request_date_from} to {record.request_date_to}.&lt;/p&gt;"
+                env['mail.mail'].create({
+                    'subject': subject,
+                    'email_to': manager.work_email,
+                    'body_html': body
+                }).send()
+        </field>
+    </record>
+
+    <!-- 🔹 Auto-create Payslip after Month End (Cron Job) -->
+    <record id="cron_generate_monthly_payslip" model="ir.cron">
+        <field name="name">Generate Monthly Payslips</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="state">code</field>
+        <field name="code">
+            today = fields.Date.today()
+            if today.day == 28:  # example monthly trigger
+                employees = env['hr.employee'].search([])
+                for emp in employees:
+                    env['hr.payslip'].create({
+                        'employee_id': emp.id,
+                        'date_from': f"{today.year}-{today.month:02d}-01",
+                        'date_to': today,
+                    })
+        </field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+    </record>
+
+    <!-- 🔹 Send Email on Invoice Validation -->
+    <record id="auto_send_invoice_email" model="base.automation">
+        <field name="name">Auto-Send Invoice Email</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_domain">[('state','=','posted'),('move_type','=','out_invoice')]</field>
+        <field name="state">code</field>
+        <field name="code">
+            template = env.ref('account.email_template_edi_invoice')
+            template.send_mail(record.id, force_send=True)
+        </field>
+    </record>
+
+    <!-- 🔹 Webhook Notify on Payment Received -->
+    <record id="webhook_payment_received" model="base.automation">
+        <field name="name">Webhook on Payment Received</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="trigger">on_write</field>
+        <field name="filter_domain">[('payment_state','=','paid')]</field>
+        <field name="state">code</field>
+        <field name="code">
+            import requests
+            webhook_url = "https://api.example.com/payment_received"
+            payload = {
+                "invoice": record.name,
+                "partner": record.partner_id.name,
+                "amount": record.amount_total,
+                "currency": record.currency_id.name,
+            }
+            requests.post(webhook_url, json=payload)
+        </field>
+    </record>
+
+    <!-- 🔹 Archive Inactive Employees (Scheduled Action) -->
+    <record id="cron_archive_inactive_employees" model="ir.cron">
+        <field name="name">Archive Inactive Employees</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="state">code</field>
+        <field name="code">
+            from datetime import date
+            from dateutil.relativedelta import relativedelta
+            six_months_ago = date.today() - relativedelta(months=6)
+            employees = env['hr.employee'].search([
+                ('create_date','&lt;', six_months_ago.isoformat()),
+                ('active','=',True)
+            ])
+            employees.write({'active': False})
+        </field>
+        <field name="interval_number">7</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+    </record>
+
+</odoo>
+```
+
+---
+
+## ✅ Module Summary
+
+| Feature                               | Type          | Model                      | Purpose                 |
+| ------------------------------------- | ------------- | -------------------------- | ----------------------- |
+| Auto-approve short leaves             | Server Action | `hr.leave`                 | Simplify short absences |
+| Notify manager on leave request       | Server Action | `hr.leave`                 | HR workflow alert       |
+| Generate monthly payslips             | Cron Job      | `hr.employee`              | Monthly automation      |
+| Auto-send email on invoice validation | Server Action | `account.move`             | Notify customers        |
+| Webhook on payment received           | Webhook Out   | `account.move`             | Sync accounting data    |
+| Archive inactive employees            | Scheduled Job | `hr.employee`              | Data cleanup            |
+| Attendance webhook endpoint           | Webhook In    | `/webhook/attendance`      | Biometric sync          |
+| Accounting webhook endpoint           | Webhook In    | `/webhook/accounting_sync` | ERP data integration    |
+
+---
+
+## 📦 Installation Steps
+
+1. Create a folder called **`employee_accounting_automation`**.
+2. Copy all files into it following the structure above.
+3. Compress to `.zip` or push to your **Odoo.sh repo** under `/custom-addons/`.
+4. In Odoo:
+
+   * Go to **Apps → Update Apps List**
+   * Search for **Employee & Accounting Automation Suite**
+   * Click **Install**
+
+---
+
+
+************XML STRUCTURE AND MINIFEST--- ODOO ACCOUENTING APP*********
+A modular XML structure and manifest for an "Odoo Accounting Apps" module compatible with Odoo 18.
+
+## 1. Manifest File (`__manifest__.py`)
+
+```python
+{
+    'name': 'Accounting Apps Suite',
+    'version': '18.0.1.0.0',
+    'category': 'Accounting',
+    'summary': 'Enhanced Accounting Applications Suite',
+    'description': """
+        Comprehensive Accounting Apps Suite for Odoo 18
+        ================================================
+        This module provides enhanced accounting functionality including:
+        * Advanced Financial Reports
+        * Budget Management
+        * Asset Management
+        * Multi-Currency Accounting
+        * Tax Management
+        * Payment Reconciliation
+    """,
+    'author': 'Your Company',
+    'website': 'https://www.yourcompany.com',
+    'depends': [
+        'account',
+        'account_accountant',
+        'base',
+        'web',
+    ],
+    'data': [
+        # Security
+        'security/accounting_security.xml',
+        'security/ir.model.access.csv',
+        
+        # Views
+        'views/account_menus.xml',
+        'views/account_financial_report_views.xml',
+        'views/account_budget_views.xml',
+        'views/account_asset_views.xml',
+        'views/account_tax_advanced_views.xml',
+        'views/account_payment_views.xml',
+        'views/res_config_settings_views.xml',
+        
+        # Data
+        'data/account_financial_report_data.xml',
+        'data/account_budget_data.xml',
+        'data/account_asset_data.xml',
+        'data/account_tax_data.xml',
+        
+        # Wizards
+        'wizards/account_report_wizard_views.xml',
+        'wizards/account_budget_wizard_views.xml',
+        'wizards/account_reconciliation_wizard_views.xml',
+        
+        # Reports
+        'report/account_financial_reports.xml',
+        'report/account_budget_reports.xml',
+        'report/account_asset_reports.xml',
+    ],
+    'demo': [
+        'demo/account_demo.xml',
+    ],
+    'assets': {
+        'web.assets_backend': [
+            'accounting_apps/static/src/css/accounting.css',
+            'accounting_apps/static/src/js/accounting.js',
+            'accounting_apps/static/src/xml/accounting_templates.xml',
+        ],
+        'web.assets_qweb': [
+            'accounting_apps/static/src/xml/accounting_templates.xml',
+        ],
+    },
+    'images': [
+        'static/description/banner.png',
+        'static/description/icon.png',
+    ],
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+    'price': 99.00,
+    'currency': 'EUR',
+}
+```
+
+## 2. Main Menu Structure (`views/account_menus.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Accounting Apps Main Menu -->
+    <menuitem 
+        id="menu_accounting_apps_root" 
+        name="Accounting Apps" 
+        sequence="10"
+        groups="account.group_account_user"
+        web_icon="accounting_apps,static/description/icon.png"
+    />
+    
+    <!-- Financial Reports Submenu -->
+    <menuitem 
+        id="menu_financial_reports" 
+        name="Financial Reports" 
+        parent="menu_accounting_apps_root" 
+        sequence="10"
+        action="action_account_financial_report"
+        groups="account.group_account_user"
+    />
+    
+    <!-- Budget Management Submenu -->
+    <menuitem 
+        id="menu_budget_management" 
+        name="Budget Management" 
+        parent="menu_accounting_apps_root" 
+        sequence="20"
+        action="action_account_budget"
+        groups="account.group_account_manager"
+    />
+    
+    <!-- Asset Management Submenu -->
+    <menuitem 
+        id="menu_asset_management" 
+        name="Asset Management" 
+        parent="menu_accounting_apps_root" 
+        sequence="30"
+        action="action_account_asset"
+        groups="account.group_account_user"
+    />
+    
+    <!-- Tax Management Submenu -->
+    <menuitem 
+        id="menu_tax_management" 
+        name="Tax Management" 
+        parent="menu_accounting_apps_root" 
+        sequence="40"
+        action="action_account_tax_advanced"
+        groups="account.group_account_user"
+    />
+    
+    <!-- Advanced Reconciliation -->
+    <menuitem 
+        id="menu_advanced_reconciliation" 
+        name="Advanced Reconciliation" 
+        parent="menu_accounting_apps_root" 
+        sequence="50"
+        action="action_account_reconciliation_wizard"
+        groups="account.group_account_user"
+    />
+    
+    <!-- Reporting Submenu -->
+    <menuitem 
+        id="menu_accounting_reporting" 
+        name="Reporting" 
+        parent="menu_accounting_apps_root" 
+        sequence="60"
+        groups="account.group_account_user"
+    />
+    
+    <!-- Report Submenus -->
+    <menuitem 
+        id="menu_financial_report_print" 
+        name Financial Reports" 
+        parent="menu_accounting_reporting" 
+        sequence="10"
+        action="action_print_financial_reports"
+    />
+    
+    <menuitem 
+        id="menu_budget_report_print" 
+        name="Budget Reports" 
+        parent="menu_accounting_reporting" 
+        sequence="20"
+        action="action_print_budget_reports"
+    />
+    
+    <menuitem 
+        id="menu_asset_report_print" 
+        name="Asset Reports" 
+        parent="menu_accounting_reporting" 
+        sequence="30"
+        action="action_print_asset_reports"
+    />
+</odoo>
+```
+
+## 3. Security Files
+
+### `security/accounting_security.xml`
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Accounting Apps User Group -->
+        <record id="group_accounting_apps_user" model="res.groups">
+            <field name="name">Accounting Apps User</field>
+            <field name="category_id" ref="base.module_category_accounting_and_finance"/>
+            <field name="implied_ids" eval="[(4, ref('account.group_account_user'))]"/>
+        </record>
+        
+        <!-- Accounting Apps Manager Group -->
+        <record id="group_accounting_apps_manager" model="res.groups">
+            <field name="name">Accounting Apps Manager</field>
+            <field name="category_id" ref="base.module_category_accounting_and_finance"/>
+            <field name="implied_ids" eval="[(4, ref('account.group_account_manager'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root'))]"/>
+        </record>
+    </data>
+</odoo>
+```
+
+### `security/ir.model.access.csv`
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_account_financial_report,account.financial_report,model_account_financial_report,account.group_account_user,1,1,1,1
+access_account_financial_report_manager,account.financial_report.manager,model_account_financial_report,account.group_account_manager,1,1,1,1
+access_account_budget,account.budget,model_account_budget,account.group_account_user,1,1,1,0
+access_account_budget_manager,account.budget.manager,model_account_budget,account.group_account_manager,1,1,1,1
+access_account_asset,account.asset,model_account_asset,account.group_account_user,1,1,1,0
+access_account_asset_manager,account.asset.manager,model_account_asset,account.group_account_manager,1,1,1,1
+access_account_tax_advanced,account.tax.advanced,model_account_tax_advanced,account.group_account_user,1,1,1,0
+access_account_tax_advanced_manager,account.tax.advanced.manager,model_account_tax_advanced,account.group_account_manager,1,1,1,1
+```
+
+## 4. Configuration Settings (`views/res_config_settings_views.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_accounting_apps" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.accounting.apps</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('settings')]" position="inside">
+                <div class="app_settings_block" data-string="Accounting Apps" string="Accounting Apps" data-key="accounting_apps">
+                    <h2>Accounting Apps Settings</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_advanced_reports"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_advanced_reports"/>
+                                <div class="text-muted">
+                                    Enable advanced financial reporting features
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="auto_budget_allocations"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="auto_budget_allocations"/>
+                                <div class="text-muted">
+                                    Automatically allocate budgets based on historical data
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_asset_depreciation"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_asset_depreciation"/>
+                                <div class="text-muted">
+                                    Automatic asset depreciation calculations
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="multi_currency_accounting"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="multi_currency_accounting"/>
+                                <div class="text-muted">
+                                    Enhanced multi-currency accounting features
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+```
+
+## 5. Module Structure
+
+```
+accounting_apps/
+├── __init__.py
+├── __manifest__.py
+├── security/
+│   ├── accounting_security.xml
+│   └── ir.model.access.csv
+├── views/
+│   ├── account_menus.xml
+│   ├── account_financial_report_views.xml
+│   ├── account_budget_views.xml
+│   ├── account_asset_views.xml
+│   ├── account_tax_advanced_views.xml
+│   ├── account_payment_views.xml
+│   └── res_config_settings_views.xml
+├── models/
+│   ├── __init__.py
+│   ├── account_financial_report.py
+│   ├── account_budget.py
+│   ├── account_asset.py
+│   └── account_tax_advanced.py
+├── wizards/
+│   ├── __init__.py
+│   ├── account_report_wizard_views.xml
+│   ├── account_budget_wizard_views.xml
+│   └── account_reconciliation_wizard_views.xml
+├── report/
+│   ├── account_financial_reports.xml
+│   ├── account_budget_reports.xml
+│   └── account_asset_reports.xml
+├── data/
+│   ├── account_financial_report_data.xml
+│   ├── account_budget_data.xml
+│   ├── account_asset_data.xml
+│   └── account_tax_data.xml
+├── demo/
+│   └── account_demo.xml
+└── static/
+    └── description/
+        ├── banner.png
+        ├── icon.png
+        └── index.html
+```
+
+## 6. Python Init Files
+
+### `__init__.py`
+```python
+from . import models
+from . import wizards
+```
+
+### `models/__init__.py`
+```python
+from . import account_financial_report
+from . import account_budget
+from . import account_asset
+from . import account_tax_advanced
+```
+
+### `wizards/__init__.py`
+```python
+from . import account_report_wizard
+from . import account_budget_wizard
+from . import account_reconciliation_wizard
+```
+
+This modular structure provides:
+
+- **Clear separation** of concerns
+- **Proper security** implementation
+- **Comprehensive menu** structure
+- **Configuration settings** integration
+- **Modular data and views** organization
+- **Odoo 18 compatibility**
+
+
+
+********* ACCOUENING APP**********
+A comprehensive modular XML structure and manifest for "Odoo HR and Payroll Apps" compatible with Odoo 18.
+
+## 1. Manifest File (`__manifest__.py`)
+
+```python
+{
+    'name': 'HR & Payroll Apps Suite',
+    'version': '18.0.1.0.0',
+    'category': 'Human Resources',
+    'summary': 'Enhanced HR and Payroll Management Suite',
+    'description': """
+        Comprehensive HR and Payroll Apps Suite for Odoo 18
+        ===================================================
+        This module provides advanced HR and Payroll functionality including:
+        * Employee Management
+        * Attendance & Time Tracking
+        * Leave Management
+        * Payroll Processing
+        * Expense Management
+        * Recruitment
+        * Performance Appraisals
+        * Shift Management
+    """,
+    'author': 'Your Company',
+    'website': 'https://www.yourcompany.com',
+    'depends': [
+        'hr',
+        'hr_payroll',
+        'hr_attendance',
+        'hr_holidays',
+        'hr_expense',
+        'hr_recruitment',
+        'base',
+        'web',
+    ],
+    'data': [
+        # Security
+        'security/hr_payroll_security.xml',
+        'security/ir.model.access.csv',
+        
+        # Views
+        'views/hr_menus.xml',
+        'views/hr_employee_advanced_views.xml',
+        'views/hr_attendance_advanced_views.xml',
+        'views/hr_leave_advanced_views.xml',
+        'views/hr_payroll_advanced_views.xml',
+        'views/hr_expense_advanced_views.xml',
+        'views/hr_recruitment_advanced_views.xml',
+        'views/hr_performance_views.xml',
+        'views/hr_shift_views.xml',
+        'views/hr_department_views.xml',
+        'views/res_config_settings_views.xml',
+        
+        # Data
+        'data/hr_payroll_data.xml',
+        'data/hr_leave_data.xml',
+        'data/hr_performance_data.xml',
+        'data/hr_shift_data.xml',
+        'data/hr_email_templates.xml',
+        
+        # Wizards
+        'wizards/hr_payroll_wizard_views.xml',
+        'wizards/hr_leave_wizard_views.xml',
+        'wizards/hr_performance_wizard_views.xml',
+        'wizards/hr_report_wizard_views.xml',
+        
+        # Reports
+        'report/hr_payroll_reports.xml',
+        'report/hr_attendance_reports.xml',
+        'report/hr_leave_reports.xml',
+        'report/hr_performance_reports.xml',
+        'report/hr_employee_reports.xml',
+    ],
+    'demo': [
+        'demo/hr_demo.xml',
+    ],
+    'assets': {
+        'web.assets_backend': [
+            'hr_payroll_apps/static/src/css/hr_payroll.css',
+            'hr_payroll_apps/static/src/js/hr_payroll.js',
+            'hr_payroll_apps/static/src/xml/hr_payroll_templates.xml',
+        ],
+        'web.assets_qweb': [
+            'hr_payroll_apps/static/src/xml/hr_payroll_templates.xml',
+        ],
+    },
+    'images': [
+        'static/description/banner.png',
+        'static/description/icon.png',
+    ],
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+    'price': 149.00,
+    'currency': 'EUR',
+}
+```
+
+## 2. Main Menu Structure (`views/hr_menus.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- HR & Payroll Apps Main Menu -->
+    <menuitem 
+        id="menu_hr_payroll_apps_root" 
+        name="HR & Payroll Apps" 
+        sequence="10"
+        groups="hr.group_hr_user"
+        web_icon="hr_payroll_apps,static/description/icon.png"
+    />
+    
+    <!-- Employee Management Submenu -->
+    <menuitem 
+        id="menu_employee_management" 
+        name="Employee Management" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="10"
+        action="action_hr_employee_advanced"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- Attendance & Time Tracking -->
+    <menuitem 
+        id="menu_attendance_management" 
+        name="Attendance & Time Tracking" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="20"
+        action="action_hr_attendance_advanced"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- Leave Management -->
+    <menuitem 
+        id="menu_leave_management" 
+        name="Leave Management" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="30"
+        action="action_hr_leave_advanced"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- Payroll Management -->
+    <menuitem 
+        id="menu_payroll_management" 
+        name="Payroll Management" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="40"
+        action="action_hr_payroll_advanced"
+        groups="hr_payroll.group_payroll_user"
+    />
+    
+    <!-- Expense Management -->
+    <menuitem 
+        id="menu_expense_management" 
+        name="Expense Management" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="50"
+        action="action_hr_expense_advanced"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- Recruitment -->
+    <menuitem 
+        id="menu_recruitment_management" 
+        name="Recruitment" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="60"
+        action="action_hr_recruitment_advanced"
+        groups="hr_recruitment.group_hr_recruitment_user"
+    />
+    
+    <!-- Performance Management -->
+    <menuitem 
+        id="menu_performance_management" 
+        name="Performance Management" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="70"
+        action="action_hr_performance"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- Shift Management -->
+    <menuitem 
+        id="menu_shift_management" 
+        name="Shift Management" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="80"
+        action="action_hr_shift"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- HR Reporting Submenu -->
+    <menuitem 
+        id="menu_hr_reporting" 
+        name="HR Reporting" 
+        parent="menu_hr_payroll_apps_root" 
+        sequence="90"
+        groups="hr.group_hr_user"
+    />
+    
+    <!-- Report Submenus -->
+    <menuitem 
+        id="menu_payroll_reports" 
+        name="Payroll Reports" 
+        parent="menu_hr_reporting" 
+        sequence="10"
+        action="action_print_payroll_reports"
+    />
+    
+    <menuitem 
+        id="menu_attendance_reports" 
+        name="Attendance Reports" 
+        parent="menu_hr_reporting" 
+        sequence="20"
+        action="action_print_attendance_reports"
+    />
+    
+    <menuitem 
+        id="menu_leave_reports" 
+        name="Leave Reports" 
+        parent="menu_hr_reporting" 
+        sequence="30"
+        action="action_print_leave_reports"
+    />
+    
+    <menuitem 
+        id="menu_performance_reports" 
+        name="Performance Reports" 
+        parent="menu_hr_reporting" 
+        sequence="40"
+        action="action_print_performance_reports"
+    />
+    
+    <menuitem 
+        id="menu_employee_reports" 
+        name="Employee Reports" 
+        parent="menu_hr_reporting" 
+        sequence="50"
+        action="action_print_employee_reports"
+    />
+</odoo>
+```
+
+## 3. Security Files
+
+### `security/hr_payroll_security.xml`
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- HR Apps User Group -->
+        <record id="group_hr_apps_user" model="res.groups">
+            <field name="name">HR Apps User</field>
+            <field name="category_id" ref="base.module_category_human_resources"/>
+            <field name="implied_ids" eval="[(4, ref('hr.group_hr_user'))]"/>
+        </record>
+        
+        <!-- HR Apps Manager Group -->
+        <record id="group_hr_apps_manager" model="res.groups">
+            <field name="name">HR Apps Manager</field>
+            <field name="category_id" ref="base.module_category_human_resources"/>
+            <field name="implied_ids" eval="[(4, ref('hr.group_hr_manager'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root'))]"/>
+        </record>
+        
+        <!-- Payroll Apps User Group -->
+        <record id="group_payroll_apps_user" model="res.groups">
+            <field name="name">Payroll Apps User</field>
+            <field name="category_id" ref="base.module_category_human_resources"/>
+            <field name="implied_ids" eval="[(4, ref('hr_payroll.group_payroll_user'))]"/>
+        </record>
+        
+        <!-- Recruitment Apps User Group -->
+        <record id="group_recruitment_apps_user" model="res.groups">
+            <field name="name">Recruitment Apps User</field>
+            <field name="category_id" ref="base.module_category_human_resources"/>
+            <field name="implied_ids" eval="[(4, ref('hr_recruitment.group_hr_recruitment_user'))]"/>
+        </record>
+    </data>
+</odoo>
+```
+
+### `security/ir.model.access.csv`
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_employee_advanced,hr.employee.advanced,model_hr_employee_advanced,hr.group_hr_user,1,1,1,0
+access_hr_employee_advanced_manager,hr.employee.advanced.manager,model_hr_employee_advanced,hr.group_hr_manager,1,1,1,1
+access_hr_attendance_advanced,hr.attendance.advanced,model_hr_attendance_advanced,hr.group_hr_user,1,1,1,0
+access_hr_attendance_advanced_manager,hr.attendance.advanced.manager,model_hr_attendance_advanced,hr.group_hr_manager,1,1,1,1
+access_hr_leave_advanced,hr.leave.advanced,model_hr_leave_advanced,hr.group_hr_user,1,1,1,0
+access_hr_leave_advanced_manager,hr.leave.advanced.manager,model_hr_leave_advanced,hr.group_hr_manager,1,1,1,1
+access_hr_payroll_advanced,hr.payroll.advanced,model_hr_payroll_advanced,hr_payroll.group_payroll_user,1,1,1,0
+access_hr_payroll_advanced_manager,hr.payroll.advanced.manager,model_hr_payroll_advanced,hr_payroll.group_payroll_manager,1,1,1,1
+access_hr_expense_advanced,hr.expense.advanced,model_hr_expense_advanced,hr.group_hr_user,1,1,1,0
+access_hr_expense_advanced_manager,hr.expense.advanced.manager,model_hr_expense_advanced,hr.group_hr_manager,1,1,1,1
+access_hr_recruitment_advanced,hr.recruitment.advanced,model_hr_recruitment_advanced,hr_recruitment.group_hr_recruitment_user,1,1,1,0
+access_hr_recruitment_advanced_manager,hr.recruitment.advanced.manager,model_hr_recruitment_advanced,hr_recruitment.group_hr_recruitment_manager,1,1,1,1
+access_hr_performance,hr.performance,model_hr_performance,hr.group_hr_user,1,1,1,0
+access_hr_performance_manager,hr.performance.manager,model_hr_performance,hr.group_hr_manager,1,1,1,1
+access_hr_shift,hr.shift,model_hr_shift,hr.group_hr_user,1,1,1,0
+access_hr_shift_manager,hr.shift.manager,model_hr_shift,hr.group_hr_manager,1,1,1,1
+```
+
+## 4. Configuration Settings (`views/res_config_settings_views.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_hr_payroll_apps" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.hr.payroll.apps</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="hr.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('settings')]" position="inside">
+                <div class="app_settings_block" data-string="HR &amp; Payroll Apps" string="HR &amp; Payroll Apps" data-key="hr_payroll_apps">
+                    <h2>HR &amp; Payroll Apps Settings</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_advanced_attendance"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_advanced_attendance"/>
+                                <div class="text-muted">
+                                    Enable advanced attendance tracking with geolocation
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="auto_leave_calculation"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="auto_leave_calculation"/>
+                                <div class="text-muted">
+                                    Automatic leave balance calculations
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_payroll_automation"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_payroll_automation"/>
+                                <div class="text-muted">
+                                    Automated payroll processing
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_performance_reviews"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_performance_reviews"/>
+                                <div class="text-muted">
+                                    Schedule automatic performance reviews
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_shift_management"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_shift_management"/>
+                                <div class="text-muted">
+                                    Advanced shift and roster management
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="enable_expense_automation"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="enable_expense_automation"/>
+                                <div class="text-muted">
+                                    Automated expense approval workflows
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+```
+
+## 5. Sample Advanced Employee Views (`views/hr_employee_advanced_views.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Advanced Employee Form View -->
+    <record id="view_hr_employee_advanced_form" model="ir.ui.view">
+        <field name="name">hr.employee.advanced.form</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Advanced Information" col="4">
+                    <field name="emergency_contact"/>
+                    <field name="emergency_phone"/>
+                    <field name="blood_type"/>
+                    <field name="medical_conditions"/>
+                </group>
+                <group string="Skills &amp; Certifications">
+                    <field name="employee_skill_ids" widget="one2many_list">
+                        <tree>
+                            <field name="skill_id"/>
+                            <field name="skill_level_id"/>
+                            <field name="certification_date"/>
+                            <field name="expiry_date"/>
+                        </tree>
+                        <form>
+                            <group>
+                                <field name="skill_id"/>
+                                <field name="skill_level_id"/>
+                                <field name="certification_date"/>
+                                <field name="expiry_date"/>
+                                <field name="certification_attachment"/>
+                            </group>
+                        </form>
+                    </field>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Advanced Employee Tree View -->
+    <record id="view_hr_employee_advanced_tree" model="ir.ui.view">
+        <field name="name">hr.employee.advanced.tree</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//tree" position="inside">
+                <field name="job_title"/>
+                <field name="work_phone"/>
+                <field name="department_id"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Advanced Employee Action -->
+    <record id="action_hr_employee_advanced" model="ir.actions.act_window">
+        <field name="name">Advanced Employee Management</field>
+        <field name="res_model">hr.employee</field>
+        <field name="view_mode">tree,form,kanban</field>
+        <field name="view_id" ref="view_hr_employee_advanced_tree"/>
+        <field name="search_view_id" ref="hr.view_employee_filter"/>
+        <field name="context">{'search_default_active_employee': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first employee!
+            </p>
+        </field>
+    </record>
+</odoo>
+```
+
+## 6. Module Structure
+
+```
+hr_payroll_apps/
+├── __init__.py
+├── __manifest__.py
+├── security/
+│   ├── hr_payroll_security.xml
+│   └── ir.model.access.csv
+├── views/
+│   ├── hr_menus.xml
+│   ├── hr_employee_advanced_views.xml
+│   ├── hr_attendance_advanced_views.xml
+│   ├── hr_leave_advanced_views.xml
+│   ├── hr_payroll_advanced_views.xml
+│   ├── hr_expense_advanced_views.xml
+│   ├── hr_recruitment_advanced_views.xml
+│   ├── hr_performance_views.xml
+│   ├── hr_shift_views.xml
+│   ├── hr_department_views.xml
+│   └── res_config_settings_views.xml
+├── models/
+│   ├── __init__.py
+│   ├── hr_employee_advanced.py
+│   ├── hr_attendance_advanced.py
+│   ├── hr_leave_advanced.py
+│   ├── hr_payroll_advanced.py
+│   ├── hr_expense_advanced.py
+│   ├── hr_recruitment_advanced.py
+│   ├── hr_performance.py
+│   └── hr_shift.py
+├── wizards/
+│   ├── __init__.py
+│   ├── hr_payroll_wizard_views.xml
+│   ├── hr_leave_wizard_views.xml
+│   ├── hr_performance_wizard_views.xml
+│   └── hr_report_wizard_views.xml
+├── report/
+│   ├── hr_payroll_reports.xml
+│   ├── hr_attendance_reports.xml
+│   ├── hr_leave_reports.xml
+│   ├── hr_performance_reports.xml
+│   └── hr_employee_reports.xml
+├── data/
+│   ├── hr_payroll_data.xml
+│   ├── hr_leave_data.xml
+│   ├── hr_performance_data.xml
+│   ├── hr_shift_data.xml
+│   └── hr_email_templates.xml
+├── demo/
+│   └── hr_demo.xml
+└── static/
+    └── description/
+        ├── banner.png
+        ├── icon.png
+        └── index.html
+```
+
+## 7. Python Init Files
+
+### `__init__.py`
+```python
+from . import models
+from . import wizards
+from . import report
+```
+
+### `models/__init__.py`
+```python
+from . import hr_employee_advanced
+from . import hr_attendance_advanced
+from . import hr_leave_advanced
+from . import hr_payroll_advanced
+from . import hr_expense_advanced
+from . import hr_recruitment_advanced
+from . import hr_performance
+from . import hr_shift
+```
+
+### `wizards/__init__.py`
+```python
+from . import hr_payroll_wizard
+from . import hr_leave_wizard
+from . import hr_performance_wizard
+from . import hr_report_wizard
+```
+
+This HR & Payroll Apps module provides:
+
+- **Comprehensive HR management** with advanced employee tracking
+- **Enhanced payroll processing** with automation features
+- **Advanced attendance and leave management**
+- **Performance appraisal system**
+- **Shift and roster management**
+- **Integrated recruitment workflow**
+- **Expense management automation**
+- **Comprehensive reporting system**
+- **Odoo 18 compatibility**
+
+
+
+***AUTOMATION AND ACTIONS FOR HR and PAYROLL******** AS ABOVE
+
+A comprehensive Odoo Automation and Action scripts for the HR and Payroll Apps module for Odoo 18.
+
+## 1. Automated Actions (`data/hr_automated_actions.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Auto-approve expenses under certain amount -->
+        <record id="auto_approve_small_expenses" model="base.automation">
+            <field name="name">Auto-approve Small Expenses</field>
+            <field name="model_id" ref="model_hr_expense"/>
+            <field name="state">code</field>
+            <field name="code">
+if record.total_amount &lt; 100 and record.state == 'reported':
+    record.action_approve_expense_sheets()
+</field>
+            <field name="active">True</field>
+            <field name="trigger">on_create_or_write</field>
+            <field name="filter_pre_domain">[('state', '=', 'reported')]</field>
+        </record>
+
+        <!-- Automatic leave accrual calculation -->
+        <record id="auto_leave_accrual" model="base.automation">
+            <field name="name">Monthly Leave Accrual Calculation</field>
+            <field name="model_id" ref="model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="code">
+# Calculate monthly leave accrual
+if record.contract_id and record.contract_id.state == 'open':
+    leave_type = env.ref('hr_holidays.holiday_status_cl')
+    accrued_days = record.contract_id.working_hours / 160.0  # Assuming 160 working hours per month
+    current_allocation = env['hr.leave.allocation'].search([
+        ('employee_id', '=', record.id),
+        ('holiday_status_id', '=', leave_type.id),
+        ('state', '=', 'validate')
+    ], limit=1)
+    if current_allocation:
+        current_allocation.write({
+            'number_of_days': current_allocation.number_of_days + accrued_days
+        })
+</field>
+            <field name="active">True</field>
+            <field name="trigger">on_time</field>
+            <field name="filter_pre_domain">[('active', '=', True)]</field>
+            <field name="trg_date_range_type">months</field>
+            <field name="trg_date_range">1</field>
+        </record>
+
+        <!-- Auto-generate payroll for confirmed employees -->
+        <record id="auto_generate_payroll" model="base.automation">
+            <field name="name">Auto-generate Monthly Payroll</field>
+            <field name="model_id" ref="model_hr_payslip"/>
+            <field name="state">code</field>
+            <field name="code">
+# Auto-generate payroll for active employees with valid contracts
+if not record.employee_id or not record.date_from or not record.date_to:
+    return
+
+contract = env['hr.contract'].search([
+    ('employee_id', '=', record.employee_id.id),
+    ('state', '=', 'open'),
+    ('date_start', '&lt;=', record.date_to),
+    '|', ('date_end', '=', False), ('date_end', '&gt;=', record.date_from)
+], limit=1)
+
+if contract:
+    # Calculate basic salary
+    basic_salary = contract.wage
+    # Calculate worked days
+    attendance_days = env['hr.attendance'].search_count([
+        ('employee_id', '=', record.employee_id.id),
+        ('check_in', '&gt;=', record.date_from),
+        ('check_in', '&lt;=', record.date_to)
+    ])
+    record.write({
+        'contract_id': contract.id,
+        'struct_id': contract.struct_id.id,
+    })
+</field>
+            <field name="active">True</field>
+            <field name="trigger">on_create</field>
+        </record>
+
+        <!-- Send performance review reminders -->
+        <record id="performance_review_reminder" model="base.automation">
+            <field name="name">Performance Review Reminder</field>
+            <field name="model_id" ref="model_hr_appraisal"/>
+            <field name="state">code</field>
+            <field name="code">
+# Send reminder for upcoming performance reviews
+if record.date_close and (record.date_close - fields.Date.today()).days == 7:
+    template = env.ref('hr_payroll_apps.email_template_performance_reminder')
+    template.send_mail(record.id, force_send=True)
+</field>
+            <field name="active">True</field>
+            <field name="trigger">on_time</field>
+            <field name="filter_pre_domain">[('state', '=', 'pending')]</field>
+            <field name="trg_date_range_type">days</field>
+            <field name="trg_date_range">1</field>
+        </record>
+
+        <!-- Auto-process overtime calculations -->
+        <record id="auto_overtime_calculation" model="base.automation">
+            <field name="name">Auto Overtime Calculation</field>
+            <field name="model_id" ref="model_hr_attendance"/>
+            <field name="state">code</field>
+            <field name="code">
+# Calculate overtime for attendance records
+if record.worked_hours &gt; 8:  # More than 8 hours is overtime
+    overtime_hours = record.worked_hours - 8
+    overtime_rate = 1.5  # Time and a half
+    overtime_amount = (record.employee_id.contract_id.wage / 160) * overtime_hours * overtime_rate
+    
+    # Create overtime record
+    env['hr.overtime'].create({
+        'employee_id': record.employee_id.id,
+        'date': record.check_in.date(),
+        'overtime_hours': overtime_hours,
+        'rate': overtime_rate,
+        'amount': overtime_amount,
+        'attendance_id': record.id,
+    })
+</field>
+            <field name="active">True</field>
+            <field name="trigger">on_create_or_write</field>
+        </record>
+
+        <!-- Auto-assign shifts based on employee availability -->
+        <record id="auto_shift_assignment" model="base.automation">
+            <field name="name">Auto Shift Assignment</field>
+            <field name="model_id" ref="model_hr_shift_schedule"/>
+            <field name="state">code</field>
+            <field name="code">
+# Automatically assign employees to shifts based on their availability and skills
+if record.shift_date and record.department_id:
+    available_employees = env['hr.employee'].search([
+        ('department_id', '=', record.department_id.id),
+        ('active', '=', True),
+        ('id', 'not in', record.employee_ids.ids)
+    ])
+    
+    for employee in available_employees:
+        # Check if employee is available on this date
+        conflicting_leave = env['hr.leave'].search([
+            ('employee_id', '=', employee.id),
+            ('state', '=', 'validate'),
+            ('date_from', '&lt;=', record.shift_date),
+            ('date_to', '&gt;=', record.shift_date)
+        ])
+        
+        if not conflicting_leave:
+            record.write({
+                'employee_ids': [(4, employee.id)]
+            })
+</field>
+            <field name="active">True</field>
+            <field name="trigger">on_create</field>
+        </record>
+
+    </data>
+</odoo>
+```
+
+## 2. Server Actions (`data/hr_server_actions.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Bulk Approve Payslips -->
+        <record id="action_bulk_approve_payslips" model="ir.actions.server">
+            <field name="name">Bulk Approve Payslips</field>
+            <field name="model_id" ref="model_hr_payslip"/>
+            <field name="state">code</field>
+            <field name="code">
+if records:
+    approved_count = 0
+    for payslip in records:
+        if payslip.state == 'draft':
+            payslip.action_payslip_done()
+            approved_count += 1
+    action = {
+        'type': 'ir.actions.client',
+        'tag': 'display_notification',
+        'params': {
+            'title': 'Payslip Approval',
+            'message': f'{approved_count} payslips approved successfully.',
+            'type': 'success',
+            'sticky': False,
+        }
+    }
+</field>
+        </record>
+
+        <!-- Generate Monthly Attendance Report -->
+        <record id="action_generate_attendance_report" model="ir.actions.server">
+            <field name="name">Generate Monthly Attendance Report</field>
+            <field name="model_id" ref="model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="code">
+# Generate attendance report for selected employees
+current_month = fields.Date.today().replace(day=1)
+next_month = (current_month + relativedelta(months=1)).replace(day=1)
+report_data = []
+
+for employee in records:
+    attendances = env['hr.attendance'].search([
+        ('employee_id', '=', employee.id),
+        ('check_in', '&gt;=', current_month),
+        ('check_in', '&lt;', next_month)
+    ])
+    
+    total_hours = sum(attendance.worked_hours for attendance in attendances)
+    report_data.append({
+        'employee': employee.name,
+        'department': employee.department_id.name,
+        'total_hours': total_hours,
+        'work_days': len(set(attendance.check_in.date() for attendance in attendances))
+    })
+
+# Create report record
+report = env['hr.attendance.report'].create({
+    'name': f'Attendance Report - {current_month.strftime("%B %Y")}',
+    'report_data': json.dumps(report_data),
+    'generated_date': fields.Datetime.now(),
+})
+
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Attendance Report',
+    'res_model': 'hr.attendance.report',
+    'res_id': report.id,
+    'view_mode': 'form',
+    'target': 'current',
+}
+</field>
+        </record>
+
+        <!-- Calculate Employee Bonuses -->
+        <record id="action_calculate_bonuses" model="ir.actions.server">
+            <field name="name">Calculate Performance Bonuses</field>
+            <field name="model_id" ref="model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="code">
+# Calculate performance bonuses for selected employees
+bonus_records = []
+for employee in records:
+    # Get performance rating
+    latest_appraisal = env['hr.appraisal'].search([
+        ('employee_id', '=', employee.id),
+        ('state', '=', 'done')
+    ], order='date_close desc', limit=1)
+    
+    if latest_appraisal and latest_appraisal.final_rating:
+        bonus_percentage = 0
+        if latest_appraisal.final_rating &gt;= 4.5:
+            bonus_percentage = 0.15  # 15% for outstanding
+        elif latest_appraisal.final_rating &gt;= 4.0:
+            bonus_percentage = 0.10  # 10% for excellent
+        elif latest_appraisal.final_rating &gt;= 3.5:
+            bonus_percentage = 0.05  # 5% for good
+        
+        if bonus_percentage &gt; 0 and employee.contract_id:
+            bonus_amount = employee.contract_id.wage * bonus_percentage
+            bonus_record = env['hr.bonus'].create({
+                'employee_id': employee.id,
+                'amount': bonus_amount,
+                'date': fields.Date.today(),
+                'reason': f'Performance Bonus - Rating: {latest_appraisal.final_rating}',
+                'percentage': bonus_percentage * 100,
+            })
+            bonus_records.append(bonus_record)
+
+if bonus_records:
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Generated Bonuses',
+        'res_model': 'hr.bonus',
+        'domain': [('id', 'in', [r.id for r in bonus_records])],
+        'view_mode': 'tree,form',
+        'target': 'current',
+    }
+else:
+    action = {
+        'type': 'ir.actions.client',
+        'tag': 'display_notification',
+        'params': {
+            'title': 'Bonus Calculation',
+            'message': 'No bonuses calculated for selected employees.',
+            'type': 'warning',
+            'sticky': False,
+        }
+    }
+</field>
+        </record>
+
+        <!-- Process Bulk Leave Requests -->
+        <record id="action_bulk_process_leave" model="ir.actions.server">
+            <field name="name">Bulk Process Leave Requests</field>
+            <field name="model_id" ref="model_hr_leave"/>
+            <field name="state">code</field>
+            <field name="code">
+if records:
+    approved_count = 0
+    rejected_count = 0
+    
+    for leave in records:
+        if leave.state == 'confirm':
+            # Check available leave balance
+            balance = leave.employee_id.remaining_leaves
+            requested_days = (leave.date_to - leave.date_from).days + 1
+            
+            if balance &gt;= requested_days:
+                leave.action_validate()
+                approved_count += 1
+            else:
+                leave.action_refuse()
+                rejected_count += 1
+    
+    message = f"Processed {len(records)} leave requests: {approved_count} approved, {rejected_count} rejected."
+    action = {
+        'type': 'ir.actions.client',
+        'tag': 'display_notification',
+        'params': {
+            'title': 'Leave Processing Complete',
+            'message': message,
+            'type': 'success',
+            'sticky': False,
+        }
+    }
+</field>
+        </record>
+
+        <!-- Generate Payroll Journal Entries -->
+        <record id="action_generate_payroll_journal" model="ir.actions.server">
+            <field name="name">Generate Payroll Journal Entries</field>
+            <field name="model_id" ref="model_hr_payslip_run"/>
+            <field name="state">code</field>
+            <field name="code">
+# Generate accounting entries for payroll batch
+if record and record.state == 'close':
+    journal_id = env.ref('hr_payroll.action_contribution_register')
+    move_ids = []
+    
+    for payslip in record.slip_ids:
+        if payslip.move_id:
+            continue
+            
+        lines = []
+        # Salary expense
+        lines.append((0, 0, {
+            'name': f'Salary: {payslip.employee_id.name}',
+            'debit': payslip.net_wage,
+            'account_id': payslip.contract_id.journal_id.default_account_id.id,
+        }))
+        
+        # Deductions
+        for line in payslip.line_ids:
+            if line.category_id.code == 'DED':
+                lines.append((0, 0, {
+                    'name': line.name,
+                    'credit': line.total,
+                    'account_id': line.salary_rule_id.account_debit.id,
+                }))
+        
+        move = env['account.move'].create({
+            'journal_id': journal_id.id,
+            'date': payslip.date,
+            'ref': f'Payroll: {payslip.employee_id.name}',
+            'line_ids': lines,
+        })
+        move_ids.append(move.id)
+        payslip.move_id = move
+    
+    action = {
+        'type': 'ir.actions.act_window',
+        'name': 'Payroll Journal Entries',
+        'res_model': 'account.move',
+        'domain': [('id', 'in', move_ids)],
+        'view_mode': 'tree,form',
+        'target': 'current',
+    }
+</field>
+        </record>
+
+        <!-- Sync Employee Data with Contracts -->
+        <record id="action_sync_employee_contract" model="ir.actions.server">
+            <field name="name">Sync Employee Contract Data</field>
+            <field name="model_id" ref="model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="code">
+# Sync employee data with their active contracts
+updated_count = 0
+for employee in records:
+    active_contract = env['hr.contract'].search([
+        ('employee_id', '=', employee.id),
+        ('state', '=', 'open')
+    ], limit=1)
+    
+    if active_contract:
+        updates = {}
+        if employee.job_id != active_contract.job_id:
+            updates['job_id'] = active_contract.job_id.id
+        if employee.department_id != active_contract.department_id:
+            updates['department_id'] = active_contract.department_id.id
+        if employee.work_phone != active_contract.work_phone:
+            updates['work_phone'] = active_contract.work_phone
+        
+        if updates:
+            employee.write(updates)
+            updated_count += 1
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': 'Data Sync Complete',
+        'message': f'Synced {updated_count} employee records with contract data.',
+        'type': 'success',
+        'sticky': False,
+    }
+}
+</field>
+        </record>
+
+    </data>
+</odoo>
+```
+
+## 3. Scheduled Actions (`data/hr_scheduled_actions.xml`)
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Monthly Payroll Processing -->
+        <record id="ir_cron_monthly_payroll" model="ir.cron">
+            <field name="name">HR: Process Monthly Payroll</field>
+            <field name="model_id" ref="model_hr_payslip"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_process_monthly_payroll()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="doall">False</field>
+        </record>
+
+        <!-- Daily Attendance Summary -->
+        <record id="ir_cron_daily_attendance" model="ir.cron">
+            <field name="name">HR: Daily Attendance Summary</field>
+            <field name="model_id" ref="model_hr_attendance"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_generate_daily_attendance_report()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="doall">False</field>
+        </record>
+
+        <!-- Weekly Leave Balance Update -->
+        <record id="ir_cron_weekly_leave_balance" model="ir.cron">
+            <field name="name">HR: Weekly Leave Balance Update</field>
+            <field name="model_id" ref="model_hr_leave_allocation"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_update_leave_balances()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">weeks</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="doall">False</field>
+        </record>
+
+        <!-- Monthly Expense Report -->
+        <record id="ir_cron_monthly_expense_report" model="ir.cron">
+            <field name="name">HR: Monthly Expense Report</field>
+            <field name="model_id" ref="model_hr_expense"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_generate_monthly_expense_report()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="doall">False</field>
+        </record>
+
+        <!-- Quarterly Performance Review Reminder -->
+        <record id="ir_cron_quarterly_performance" model="ir.cron">
+            <field name="name">HR: Quarterly Performance Review Reminder</field>
+            <field name="model_id" ref="model_hr_appraisal"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_send_performance_reminders()</field>
+            <field name="interval_number">3</field>
+            <field name="interval_type">months</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="doall">False</field>
+        </record>
+
+        <!-- Annual Contract Renewal Check -->
+        <record id="ir_cron_annual_contract_renewal" model="ir.cron">
+            <field name="name">HR: Annual Contract Renewal Check</field>
+            <field name="model_id" ref="model_hr_contract"/>
+            <field name="state">code</field>
+            <field name="code">model._cron_check_contract_renewals()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="numbercall">-1</field>
+            <field name="active">True</field>
+            <field name="doall">False</field>
+        </record>
+
+    </data>
+</odoo>
+```
+
+## 4. Update Manifest to Include Automation Files
+
+Add these to your `__manifest__.py` data section:
+
+```python
+'data': [
+    # ... existing files ...
+    'data/hr_automated_actions.xml',
+    'data/hr_server_actions.xml',
+    'data/hr_scheduled_actions.xml',
+    # ... other files ...
+],
+```
+
+## 5. Python Methods for Scheduled Actions
+
+Add these methods to your models:
+
+### `models/hr_payroll_advanced.py`
+```python
+from odoo import models, fields, api
+from dateutil.relativedelta import relativedelta
+
+class HrPayslipAdvanced(models.Model):
+    _inherit = 'hr.payslip'
+    
+    @api.model
+    def _cron_process_monthly_payroll(self):
+        """Scheduled action to process monthly payroll"""
+        # Get first day of current month
+        today = fields.Date.today()
+        first_day = today.replace(day=1)
+        last_day = first_day + relativedelta(day=31)
+        
+        # Find employees with active contracts
+        active_contracts = self.env['hr.contract'].search([
+            ('state', '=', 'open'),
+            ('date_start', '<=', last_day),
+            '|', ('date_end', '=', False), ('date_end', '>=', first_day)
+        ])
+        
+        for contract in active_contracts:
+            # Check if payslip already exists for this period
+            existing_payslip = self.search([
+                ('employee_id', '=', contract.employee_id.id),
+                ('date_from', '=', first_day),
+                ('date_to', '=', last_day),
+                ('state', '!=', 'cancel')
+            ])
+            
+            if not existing_payslip:
+                # Create new payslip
+                payslip_vals = {
+                    'employee_id': contract.employee_id.id,
+                    'contract_id': contract.id,
+                    'date_from': first_day,
+                    'date_to': last_day,
+                    'struct_id': contract.struct_id.id,
+                }
+                self.create(payslip_vals)
+```
+
+### `models/hr_attendance_advanced.py`
+```python
+class HrAttendanceAdvanced(models.Model):
+    _inherit = 'hr.attendance'
+    
+    @api.model
+    def _cron_generate_daily_attendance_report(self):
+        """Generate daily attendance summary report"""
+        yesterday = fields.Date.today() - relativedelta(days=1)
+        
+        # Get all employees
+        employees = self.env['hr.employee'].search([('active', '=', True)])
+        
+        for employee in employees:
+            # Calculate yesterday's attendance
+            attendances = self.search([
+                ('employee_id', '=', employee.id),
+                ('check_in', '>=', yesterday),
+                ('check_in', '<', yesterday + relativedelta(days=1))
+            ])
+            
+            total_hours = sum(att.worked_hours for att in attendances)
+            
+            # Create daily summary record
+            self.env['hr.attendance.daily'].create({
+                'employee_id': employee.id,
+                'date': yesterday,
+                'total_hours': total_hours,
+                'attendance_count': len(attendances),
+            })
+```
+
+These automation scripts provide:
+
+- **Automated payroll processing** with monthly schedules
+- **Intelligent leave management** with auto-approvals
+- **Performance-based bonus calculations**
+- **Attendance tracking and reporting**
+- **Expense management automation**
+- **Contract and employee data synchronization**
+- **Comprehensive reporting system**
+- **Scheduled reminders and notifications**
+
+
+
+
+*********schedule actions, server actions and automated actions in Odoo 18*****************
+
+A comprehensive list and explanation of Scheduled Actions, Server Actions, and Automated Actions in Odoo 18:
+
+## 1. SCHEDULED ACTIONS (ir.cron)
+
+Scheduled actions run automatically at predefined intervals.
+
+### Code Structure:
+```xml
+<record id="ir_cron_example" model="ir.cron">
+    <field name="name">Scheduled Action Name</field>
+    <field name="model_id" ref="model_model_name"/>
+    <field name="state">code</field>
+    <field name="code">model.method_name()</field>
+    <field name="interval_number">1</field>
+    <field name="interval_type">days|weeks|months|hours|minutes</field>
+    <field name="numbercall">-1</field>
+    <field name="doall">False</field>
+    <field name="active">True</field>
+    <field name="user_id" ref="base.user_root"/>
+</record>
+```
+
+### Common Scheduled Actions Examples:
+
+#### Daily Database Backup
+```xml
+<record id="ir_cron_database_backup" model="ir.cron">
+    <field name="name">Database: Daily Backup</field>
+    <field name="model_id" ref="model_db_backup"/>
+    <field name="state">code</field>
+    <field name="code">model.schedule_backup()</field>
+    <field name="interval_number">1</field>
+    <field name="interval_type">days</field>
+    <field name="numbercall">-1</field>
+    <field name="active">True</field>
+</record>
+```
+
+#### Monthly Invoice Generation
+```xml
+<record id="ir_cron_generate_invoices" model="ir.cron">
+    <field name="name">Accounting: Generate Monthly Invoices</field>
+    <field name="model_id" ref="model_account_move"/>
+    <field name="state">code</field>
+    <field name="code">model._cron_generate_recurring_invoices()</field>
+    <field name="interval_number">1</field>
+    <field name="interval_type">months</field>
+    <field name="numbercall">-1</field>
+    <field name="active">True</field>
+</record>
+```
+
+#### Email Queue Processing
+```xml
+<record id="ir_cron_email_queue" model="ir.cron">
+    <field name="name">Mail: Process Email Queue</field>
+    <field name="model_id" ref="model_mail_mail"/>
+    <field name="state">code</field>
+    <field name="code">model._cron_send_email_queue()</field>
+    <field name="interval_number">5</field>
+    <field name="interval_type">minutes</field>
+    <field name="numbercall">-1</field>
+    <field name="active">True</field>
+</record>
+```
+
+## 2. SERVER ACTIONS (ir.actions.server)
+
+Server actions are triggered manually from the UI or other actions.
+
+### Code Structure:
+```xml
+<record id="action_server_example" model="ir.actions.server">
+    <field name="name">Server Action Name</field>
+    <field name="model_id" ref="model_model_name"/>
+    <field name="state">code|object_create|object_write|multi|client_action</field>
+    <field name="code">
+        # Python code here
+        # 'records' contains selected records
+        # 'env' is the Odoo environment
+        # 'model' is the model instance
+    </field>
+    <field name="binding_model_id" ref="model_model_name"/>
+    <field name="binding_type">action</field>
+</record>
+```
+
+### Server Action Types and Examples:
+
+#### 1. Code Type (Python Execution)
+```xml
+<record id="action_update_product_prices" model="ir.actions.server">
+    <field name="name">Update Product Prices by 10%</field>
+    <field name="model_id" ref="model_product_product"/>
+    <field name="state">code</field>
+    <field name="code">
+if records:
+    updated_count = 0
+    for product in records:
+        new_price = product.list_price * 1.10  # Increase by 10%
+        product.write({'list_price': new_price})
+        updated_count += 1
+    
+    action = {
+        'type': 'ir.actions.client',
+        'tag': 'display_notification',
+        'params': {
+            'title': 'Price Update',
+            'message': f'Updated prices for {updated_count} products.',
+            'type': 'success',
+            'sticky': False,
+        }
+    }
+</field>
+</record>
+```
+
+#### 2. Object Create Type
+```xml
+<record id="action_create_followup_task" model="ir.actions.server">
+    <field name="name">Create Follow-up Task</field>
+    <field name="model_id" ref="model_project_task"/>
+    <field name="state">object_create</field>
+    <field name="use_create">current</field>
+    <field name="fields_lines" eval="[
+        (0, 0, {
+            'col1': 'name',
+            'value': 'Follow-up for ' + object.name,
+            'type': 'equation',
+        }),
+        (0, 0, {
+            'col1': 'user_id',
+            'value': str(object.user_id.id),
+            'type': 'value',
+        }),
+        (0, 0, {
+            'col1': 'date_deadline',
+            'value': '(datetime.datetime.now() + datetime.timedelta(days=7)).strftime("%Y-%m-%d")',
+            'type': 'equation',
+        })
+    ]"/>
+</record>
+```
+
+#### 3. Object Write Type
+```xml
+<record id="action_mark_tasks_completed" model="ir.actions.server">
+    <field name="name">Mark Tasks as Completed</field>
+    <field name="model_id" ref="model_project_task"/>
+    <field name="state">object_write</field>
+    <field name="use_write">current</field>
+    <field name="write_expression">{
+        'stage_id': env.ref('project.project_stage_2').id,
+        'date_end': fields.Datetime.now(),
+    }</field>
+</record>
+```
+
+#### 4. Client Action Type
+```xml
+<record id="action_open_report_dashboard" model="ir.actions.server">
+    <field name="name">Open Sales Dashboard</field>
+    <field name="model_id" ref="model_sale_order"/>
+    <field name="state">client_action</field>
+    <field name="action_id" ref="action_sale_dashboard"/>
+</record>
+```
+
+#### 5. Multi Type (Multiple Actions)
+```xml
+<record id="action_process_order_pipeline" model="ir.actions.server">
+    <field name="name">Process Order Pipeline</field>
+    <field name="model_id" ref="model_sale_order"/>
+    <field name="state">multi</field>
+    <field name="child_ids" eval="[
+        (4, ref('action_validate_order')),
+        (4, ref('action_create_invoice')),
+        (4, ref('action_send_confirmation')),
+    ]"/>
+</record>
+```
+
+## 3. AUTOMATED ACTIONS (base.automation)
+
+Automated actions trigger automatically based on specific conditions.
+
+### Code Structure:
+```xml
+<record id="auto_action_example" model="base.automation">
+    <field name="name">Automated Action Name</field>
+    <field name="model_id" ref="model_model_name"/>
+    <field name="trigger">on_create|on_write|on_create_or_write|on_unlink|on_time</field>
+    <field name="state">code|object_write|object_create</field>
+    <field name="code">
+        # Python code here
+        # 'record' contains the current record
+        # 'env' is the Odoo environment
+    </field>
+    <field name="filter_pre_domain">[('field', 'operator', 'value')]</field>
+    <field name="active">True</field>
+</record>
+```
+
+### Automated Action Triggers and Examples:
+
+#### 1. On Create Trigger
+```xml
+<record id="auto_send_welcome_email" model="base.automation">
+    <field name="name">Send Welcome Email on User Creation</field>
+    <field name="model_id" ref="model_res_users"/>
+    <field name="trigger">on_create</field>
+    <field name="state">code</field>
+    <field name="code">
+if record.email:
+    template = env.ref('base.template_user_welcome_email')
+    template.send_mail(record.id, force_send=True)
+</field>
+    <field name="active">True</field>
+</record>
+```
+
+#### 2. On Write Trigger
+```xml
+<record id="auto_update_lead_stage" model="base.automation">
+    <field name="name">Update Lead Stage on Status Change</field>
+    <field name="model_id" ref="model_crm_lead"/>
+    <field name="trigger">on_write</field>
+    <field name="state">code</field>
+    <field name="code">
+if 'stage_id' in record and record.probability >= 80:
+    won_stage = env.ref('crm.stage_lead4')
+    record.write({'stage_id': won_stage.id})
+</field>
+    <field name="filter_pre_domain">[('type', '=', 'lead')]</field>
+    <field name="active">True</field>
+</record>
+```
+
+#### 3. On Create or Write Trigger
+```xml
+<record id="auto_generate_product_code" model="base.automation">
+    <field name="name">Generate Product Code</field>
+    <field name="model_id" ref="model_product_product"/>
+    <field name="trigger">on_create_or_write</field>
+    <field name="state">code</field>
+    <field name="code">
+if not record.default_code:
+    category_code = record.categ_id.code or 'GEN'
+    sequence = env['ir.sequence'].next_by_code('product.code')
+    record.default_code = f"{category_code}-{sequence}"
+</field>
+    <field name="active">True</field>
+</record>
+```
+
+#### 4. On Time Trigger (Scheduled)
+```xml
+<record id="auto_send_reminder_emails" model="base.automation">
+    <field name="name">Send Task Reminder Emails</field>
+    <field name="model_id" ref="model_project_task"/>
+    <field name="trigger">on_time</field>
+    <field name="state">code</field>
+    <field name="code">
+if record.date_deadline and record.user_id:
+    days_until_deadline = (record.date_deadline - fields.Date.today()).days
+    if days_until_deadline == 1:  # Reminder 1 day before deadline
+        template = env.ref('project.email_template_task_reminder')
+        template.send_mail(record.id, force_send=True)
+</field>
+    <field name="filter_pre_domain">[('stage_id.is_closed', '=', False)]</field>
+    <field name="trg_date_range_type">days</field>
+    <field name="trg_date_range">1</field>
+    <field name="active">True</field>
+</record>
+```
+
+#### 5. Object Write Action Type
+```xml
+<record id="auto_archive_old_records" model="base.automation">
+    <field name="name">Archive Old Records</field>
+    <field name="model_id" ref="model_res_partner"/>
+    <field name="trigger">on_time</field>
+    <field name="state">object_write</field>
+    <field name="update_path">active</field>
+    <field name="update_expression">False</field>
+    <field name="filter_pre_domain">
+        [('active', '=', True), ('write_date', '&lt;', (datetime.datetime.now() - datetime.timedelta(days=365)).strftime('%Y-%m-%d'))]
+    </field>
+    <field name="trg_date_range_type">days</field>
+    <field name="trg_date_range">1</field>
+    <field name="active">True</field>
+</record>
+```
+
+## 4. COMPREHENSIVE EXAMPLE: SALES PIPELINE AUTOMATION
+
+### Complete Workflow Example:
+
+```xml
+<!-- Scheduled Action: Daily Sales Report -->
+<record id="ir_cron_daily_sales_report" model="ir.cron">
+    <field name="name">Sales: Daily Performance Report</field>
+    <field name="model_id" ref="model_sale_order"/>
+    <field name="state">code</field>
+    <field name="code">model._cron_generate_daily_sales_report()</field>
+    <field name="interval_number">1</field>
+    <field name="interval_type">days</field>
+    <field name="numbercall">-1</field>
+    <field name="active">True</field>
+</record>
+
+<!-- Server Action: Bulk Confirm Orders -->
+<record id="action_bulk_confirm_orders" model="ir.actions.server">
+    <field name="name">Bulk Confirm Sales Orders</field>
+    <field name="model_id" ref="model_sale_order"/>
+    <field name="state">code</field>
+    <field name="code">
+confirmed_count = 0
+for order in records:
+    if order.state in ['draft', 'sent']:
+        order.action_confirm()
+        confirmed_count += 1
+
+action = {
+    'type': 'ir.actions.client',
+    'tag': 'display_notification',
+    'params': {
+        'title': 'Order Confirmation',
+        'message': f'{confirmed_count} orders confirmed successfully.',
+        'type': 'success',
+        'sticky': False,
+    }
+}
+</field>
+</record>
+
+<!-- Automated Action: Auto-assign Salesperson -->
+<record id="auto_assign_salesperson" model="base.automation">
+    <field name="name">Auto-assign Salesperson by Territory</field>
+    <field name="model_id" ref="model_sale_order"/>
+    <field name="trigger">on_create</field>
+    <field name="state">code</field>
+    <field name="code">
+if record.partner_id and not record.user_id:
+    territory = record.partner_id.territory_id
+    if territory and territory.salesperson_id:
+        record.user_id = territory.salesperson_id
+</field>
+    <field name="active">True</field>
+</record>
+```
+
+## 5. KEY DIFFERENCES SUMMARY
+
+| Feature | Scheduled Actions | Server Actions | Automated Actions |
+|---------|------------------|----------------|------------------|
+| **Trigger** | Time-based intervals | Manual UI trigger | Record events |
+| **Execution** | Background process | User-initiated | Automatic on events |
+| **Use Case** | Periodic tasks | Bulk operations | Business rules |
+| **Frequency** | Fixed intervals | On-demand | On specific events |
+| **Visibility** | Technical settings | Action menus | Automated |
+
+## 6. BEST PRACTICES
+
+1. **Error Handling**: Always include try-except blocks in code actions
+2. **Performance**: Use efficient queries and avoid nested loops
+3. **Logging**: Implement proper logging for debugging
+4. **Security**: Consider user permissions and access rights
+5. **Testing**: Test actions thoroughly before deployment
+
+
+
+
