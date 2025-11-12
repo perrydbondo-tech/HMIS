@@ -7,7 +7,7 @@ from datetime import date,datetime
 class medical_inpatient_registration(models.Model):
     _name = 'medical.inpatient.registration'
 
-    name = fields.Char(string="Registration Code", copy=False, readonly=True, index=True)
+    name = fields.Char(string="Patient Registration", copy=False, readonly=True, index=True)
     patient_id = fields.Many2one('medical.patient',string="Patient",required=True)
     hospitalization_date = fields.Datetime(string="Hospitalization date",required=True)
     discharge_date = fields.Datetime(string="Expected Discharge date",required=True)
