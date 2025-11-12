@@ -5,6 +5,7 @@
         <field name="name">first.order.tree.custom</field>
         <field name="model">custom.model</field>
         <field name="priority">1</field>
+        <field name="priority">2</field>
         <field name="arch" type="xml">
             <list string="Sales Orders" sample="1">
                 
