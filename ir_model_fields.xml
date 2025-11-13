@@ -1,0 +1,270 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+  <record id="description_appointm_e1416862-90e8-49d4-ae73-d1fd57bb2802" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">char</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Description</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_name</field>
+    <field name="on_delete" eval="False"/>
+    <field name="required" eval="True"/>
+    <field name="tracking">1</field>
+    <field name="translate">standard</field>
+  </record>
+  <record id="active_appointment_e842d2e9-cda4-4cb9-b257-51457c23d31d" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">boolean</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Active</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_active</field>
+    <field name="on_delete" eval="False"/>
+    <field name="tracking">1</field>
+  </record>
+  <record id="responsible_appointm_146ef6dc-12be-40e2-80e6-f4e80f002fd9" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">many2one</field>
+    <field name="copied" eval="True"/>
+    <field name="domain">[('share', '=', False)]</field>
+    <field name="field_description">Responsible</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_user_id</field>
+    <field name="relation">res.users</field>
+    <field name="tracking">1</field>
+  </record>
+  <record id="contact_appointment_01d17150-cdfb-4f31-b13c-22415baa918a" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">many2one</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Contact</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_partner_id</field>
+    <field name="relation">res.partner</field>
+    <field name="tracking">1</field>
+  </record>
+  <record id="phone_appointment_2dd7950b-f830-4aca-9950-9efad3f30f2d" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">char</field>
+    <field name="related">x_studio_partner_id.phone</field>
+    <field name="field_description">Phone</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_partner_phone</field>
+    <field name="on_delete" eval="False"/>
+    <field name="tracking">2</field>
+  </record>
+  <record id="email_appointment_0824c2c7-8c1d-498f-a22b-44730611d0c6" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">char</field>
+    <field name="related">x_studio_partner_id.email</field>
+    <field name="field_description">Email</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_partner_email</field>
+    <field name="on_delete" eval="False"/>
+    <field name="tracking">1</field>
+  </record>
+  <record id="notes_appointment_48ac5322-89c7-41a5-b6cb-3b2dbdfe7a6b" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">html</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Notes</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_notes</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="date_appointment_e91d56fd-6b8a-4fab-9f70-f5749aa472a7" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">date</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Date</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_date</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="end_date_appointment_14e3e5b2-cc39-46d6-963f-ff4477ccef9d" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">datetime</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">End Date</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_date_stop</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="start_date_appointme_2dc26294-bd3b-466d-b04e-235c331814de" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">datetime</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Start Date</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_date_start</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="currency_appointment_0a946633-9f5c-4d5e-9e1c-bf2cabd1f2d6" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">many2one</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Currency</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_currency_id</field>
+    <field name="relation">res.currency</field>
+  </record>
+  <record id="value_appointment_8bfdd061-895f-4a75-9b06-fd4143078cb0" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">monetary</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Value</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_value</field>
+    <field name="on_delete" eval="False"/>
+    <field name="tracking">1</field>
+    <field name="currency_field">x_studio_currency_id</field>
+  </record>
+  <record id="image_appointment_0b8a689f-933e-4e98-a283-f96dd7ae77ea" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">binary</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Image</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_image</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="sequence_appointment_aaa95a63-3124-4c9e-a11b-6ce2df9a363d" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">integer</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Sequence</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_sequence</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="appointment_line_04981541-126a-42e1-9cc9-9a6a24d51410" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">many2one</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">X Appointment</field>
+    <field name="model">x_appointment_line_303b1</field>
+    <field name="model_id" ref="appointment_line_be6b0e31-aedf-430a-8f9a-78486cf41d55"/>
+    <field name="name">x_appointment_id</field>
+    <field name="relation">x_appointment</field>
+  </record>
+  <record id="new_lines_appointmen_d100801b-20eb-48f1-8284-af13e6550152" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">one2many</field>
+    <field name="field_description">New Lines</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_appointment_line_ids_cc2d6</field>
+    <field name="on_delete" eval="False"/>
+    <field name="relation">x_appointment_line_303b1</field>
+    <field name="relation_field">x_appointment_id</field>
+  </record>
+  <record id="stage_appointment_70d80846-c7fe-4c72-a202-3c2e3f566980" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">many2one</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Stage</field>
+    <field name="group_expand" eval="True"/>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_stage_id</field>
+    <field name="on_delete">restrict</field>
+    <field name="relation">x_appointment_stage</field>
+    <field name="required" eval="True"/>
+    <field name="tracking">1</field>
+  </record>
+  <record id="high_priority_appoin_de8dae80-e120-4d97-8ad4-1e37577810b6" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">boolean</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">High Priority</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_priority</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="color_appointment_f43940fc-c02f-4525-a0ec-d312dadfbffa" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">integer</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Color</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_color</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="kanban_state_appoint_906c701d-6281-4554-ba3a-672aa6560779" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">selection</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Kanban State</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_kanban_state</field>
+    <field name="on_delete" eval="False"/>
+    <field name="selection">[('normal', 'In Progress'), ('done', 'Ready'), ('blocked', 'Blocked')]</field>
+  </record>
+  <record id="tags_appointment_d963dcef-46af-4fe9-946f-0b27575997aa" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">many2many</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Tags</field>
+    <field name="model">x_appointment</field>
+    <field name="model_id" ref="appointment_4a961edb-59f9-4f61-94c2-c2932de72557"/>
+    <field name="name">x_studio_tag_ids</field>
+    <field name="on_delete" eval="False"/>
+    <field name="relation">x_appointment_tag</field>
+    <field name="relation_table">x_appointment_tag_rel</field>
+  </record>
+  <record id="sequence_appointment_27f8ad13-6c05-40f6-8786-cfa508e133cf" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">integer</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Sequence</field>
+    <field name="model">x_appointment_line_303b1</field>
+    <field name="model_id" ref="appointment_line_be6b0e31-aedf-430a-8f9a-78486cf41d55"/>
+    <field name="name">x_studio_sequence</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="description_appointm_32c2ac20-eef0-4b1c-b07d-cb7ccf423ed4" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">char</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Description</field>
+    <field name="model">x_appointment_line_303b1</field>
+    <field name="model_id" ref="appointment_line_be6b0e31-aedf-430a-8f9a-78486cf41d55"/>
+    <field name="name">x_name</field>
+    <field name="on_delete" eval="False"/>
+    <field name="required" eval="True"/>
+    <field name="translate">standard</field>
+  </record>
+  <record id="stage_name_appointme_68857089-802c-4996-ac81-560565f9deaa" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">char</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Stage Name</field>
+    <field name="model">x_appointment_stage</field>
+    <field name="model_id" ref="appointment_stages_d2a42c7d-f77f-4dfd-9dc0-57aa7ffd479a"/>
+    <field name="name">x_name</field>
+    <field name="on_delete" eval="False"/>
+    <field name="required" eval="True"/>
+    <field name="translate">standard</field>
+  </record>
+  <record id="sequence_appointment_5fbcf38f-969b-4471-b952-20da00c7f7df" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">integer</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Sequence</field>
+    <field name="model">x_appointment_stage</field>
+    <field name="model_id" ref="appointment_stages_d2a42c7d-f77f-4dfd-9dc0-57aa7ffd479a"/>
+    <field name="name">x_studio_sequence</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+  <record id="name_appointment_tag_0399714a-757e-4772-9bc1-4355d66e4cd7" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">char</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Name</field>
+    <field name="model">x_appointment_tag</field>
+    <field name="model_id" ref="appointment_tags_917daa0a-ac2c-48cb-b9f0-e5731cd2d484"/>
+    <field name="name">x_name</field>
+    <field name="on_delete" eval="False"/>
+    <field name="required" eval="True"/>
+  </record>
+  <record id="color_appointment_ta_713e2a90-570a-4011-b628-411ce634489c" model="ir.model.fields" context="{'studio': True}">
+    <field name="ttype">integer</field>
+    <field name="copied" eval="True"/>
+    <field name="field_description">Color</field>
+    <field name="model">x_appointment_tag</field>
+    <field name="model_id" ref="appointment_tags_917daa0a-ac2c-48cb-b9f0-e5731cd2d484"/>
+    <field name="name">x_color</field>
+    <field name="on_delete" eval="False"/>
+  </record>
+</odoo>
