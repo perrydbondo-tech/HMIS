@@ -1,0 +1,308 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<odoo>
+  <record id="default_list_view_fo_749f7853-bf54-452d-8428-fffa07f252a8" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <list default_order="x_studio_priority desc,x_studio_sequence asc,id desc">
+        <field name="x_studio_sequence" widget="handle"/>
+        <field name="x_name"/>
+        <field name="x_studio_partner_id"/>
+        <field name="x_studio_user_id" widget="many2one_avatar_user"/>
+        <field name="x_studio_currency_id" invisible="1"/>
+        <field name="x_studio_value" sum="Total"/>
+        <field name="x_studio_tag_ids" widget="many2many_tags" options="{'color_field': 'x_color'}"/>
+        <field name="x_color" widget="color_picker"/>
+      </list>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default list view for x_appointment</field>
+    <field name="type">list</field>
+  </record>
+  <record id="default_form_view_fo_3d2a361e-1985-49ca-9322-c0bf422b74a7" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <form>
+        <header>
+          <field name="x_studio_stage_id" widget="statusbar" options="{'clickable': '1'}"/>
+        </header>
+        <sheet string="Appointment">
+          <field name="x_studio_kanban_state" widget="state_selection"/>
+          <widget name="web_ribbon" text="Archived" bg_color="text-bg-danger" invisible="x_active"/>
+          <field name="x_active" invisible="1"/>
+          <field class="oe_avatar" widget="image" name="x_studio_image"/>
+          <div class="oe_title">
+            <h1>
+              <field name="x_name" required="1" placeholder="Name..."/>
+            </h1>
+          </div>
+          <group name="studio_group_7b5162">
+            <group name="studio_group_7b5162_left">
+              <field name="x_studio_partner_id"/>
+              <field name="x_studio_partner_phone" widget="phone" options="{'enable_sms': True}"/>
+              <field name="x_studio_partner_email" widget="email"/>
+              <field name="x_studio_date"/>
+              <field name="x_studio_date_start" string="Dates" widget="daterange" options="{'end_date_field': 'x_studio_date_stop'}"/>
+              <field name="x_studio_date_stop" invisible="1"/>
+            </group>
+            <group name="studio_group_7b5162_right">
+              <field name="x_studio_user_id" widget="many2one_avatar_user"/>
+              <field name="x_studio_currency_id" invisible="1"/>
+              <field name="x_studio_value"/>
+              <field name="x_studio_tag_ids" widget="many2many_tags" options="{'color_field': 'x_color'}"/>
+            </group>
+          </group>
+          <group>
+            <field name="x_studio_notes" placeholder="Type down your notes here..." nolabel="1" colspan="2"/>
+          </group>
+          <notebook>
+            <page string="Details" name="lines">
+              <field name="x_appointment_line_ids_cc2d6"/>
+            </page>
+          </notebook>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default form view for x_appointment</field>
+    <field name="type">form</field>
+  </record>
+  <record id="default_search_view__0713dd83-f3ac-453e-b72e-685ae5bc8356" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <search>
+        <field name="x_name"/>
+        <field name="x_studio_partner_id" operator="child_of"/>
+        <field name="x_studio_user_id"/>
+        <field name="x_studio_tag_ids"/>
+        <filter string="My Appointment" name="my_x_appointment" domain="[['x_studio_user_id', '=', uid]]"/>
+        <separator/>
+        <filter date="x_studio_date" name="studio_filter_date" string="Date"/>
+        <filter date="x_studio_date_start" name="studio_filter_date_start" string="Start Date"/>
+        <filter date="x_studio_date_stop" name="studio_filter_date_stop" string="End Date"/>
+        <separator/>
+        <filter string="Archived" name="archived_x_appointment" domain="[['x_active', '=', False]]"/>
+        <separator/>
+        <filter name="groupby_x_partner" string="Partner" context="{'group_by': 'x_studio_partner_id'}" domain="[]"/>
+        <filter name="groupby_x_user" string="Responsible" context="{'group_by': 'x_studio_user_id'}" domain="[]"/>
+        <filter name="x_studio_stage_id" string="Stage" context="{'group_by': 'x_studio_stage_id'}" domain="[]"/>
+      </search>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default search view for x_appointment</field>
+    <field name="type">search</field>
+  </record>
+  <record id="default_calendar_vie_f711a5c5-1125-4823-b98f-5510642c3eab" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <calendar date_start="x_studio_date" create_name_field="x_name"/>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default calendar view for x_appointment</field>
+    <field name="type">calendar</field>
+  </record>
+  <record id="default_gantt_view_f_857ec9cf-e818-4c61-95b3-a623f61336b0" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <gantt date_start="x_studio_date_start" date_stop="x_studio_date_stop"/>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default gantt view for x_appointment</field>
+    <field name="type">gantt</field>
+  </record>
+  <record id="default_kanban_view__20c3c051-e442-4921-9781-49f25adde1a3" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <kanban default_group_by="x_studio_stage_id" default_order="x_studio_priority desc,x_studio_sequence asc,id desc" highlight_color="x_color">
+        <field name="x_color"/>
+        <field name="x_studio_currency_id"/>
+        <progressbar field="x_studio_kanban_state" colors="{&quot;normal&quot;: &quot;200&quot;, &quot;done&quot;: &quot;success&quot;, &quot;blocked&quot;: &quot;danger&quot;}" sum_field="x_studio_value"/>
+        <templates>
+          <t t-name="menu">
+            <a t-if="widget.editable" role="menuitem" type="open" class="dropdown-item">Edit</a>
+            <a t-if="widget.deletable" role="menuitem" type="delete" class="dropdown-item">Delete</a>
+            <field widget="kanban_color_picker" name="x_color"/>
+          </t>
+          <t t-name="card" class="flex-row">
+            <aside>
+              <field name="x_studio_image" widget="image" options="{&quot;zoom&quot;: true, &quot;background&quot;: true, &quot;preventClicks&quot;: false}"/>
+            </aside>
+            <main>
+              <div name="studio_auto_kanban_header" class="d-flex">
+                <field name="x_studio_priority" widget="boolean_favorite" nolabel="1"/>
+                <field name="display_name" class="h5"/>
+                <field name="x_studio_sequence" widget="handle" invisible="1"/>
+              </div>
+              <div name="studio_auto_kanban_body">
+                <field name="x_studio_tag_ids" options="{'color_field': 'x_color'}"/>
+              </div>
+              <footer>
+                <field name="x_studio_value"/>
+                <div class="ms-auto d-flex align-items-center">
+                  <field name="x_studio_kanban_state" widget="state_selection"/>
+                  <field class="ms-1" name="x_studio_user_id" widget="kanban.many2one_avatar_user"/>
+                </div>
+              </footer>
+            </main>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default kanban view for x_appointment</field>
+    <field name="type">kanban</field>
+  </record>
+  <record id="default_map_view_for_d290ee32-e017-4576-aafd-08beb80dcb21" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <map res_partner="x_studio_partner_id">
+        <field name="x_studio_partner_id" string="Partner"/>
+      </map>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default map view for x_appointment</field>
+    <field name="type">map</field>
+  </record>
+  <record id="default_pivot_view_f_92a7f678-c73b-45cb-a428-bbe07b957c87" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <pivot sample="1">
+        <field name="x_studio_value" type="measure"/>
+        <field name="x_studio_stage_id" type="col"/>
+        <field name="x_studio_date" type="row"/>
+      </pivot>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default pivot view for x_appointment</field>
+    <field name="type">pivot</field>
+  </record>
+  <record id="default_graph_view_f_6517b7c0-5648-4ffe-9ddc-ade41a72ac8d" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <graph sample="1">
+        <field name="x_studio_value" type="measure"/>
+        <field name="create_date" type="row"/>
+      </graph>
+    </field>
+    <field name="model">x_appointment</field>
+    <field name="name">Default graph view for x_appointment</field>
+    <field name="type">graph</field>
+  </record>
+  <record id="default_list_view_fo_a8434cf5-e907-4df4-9447-1a0873d9acf1" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <list editable="bottom" default_order="x_studio_sequence asc,id desc">
+        <field name="x_studio_sequence" widget="handle"/>
+        <field name="x_name"/>
+      </list>
+    </field>
+    <field name="model">x_appointment_line_303b1</field>
+    <field name="name">Default list view for x_appointment_line_303b1</field>
+    <field name="type">list</field>
+  </record>
+  <record id="default_form_view_fo_e96784b6-8b0e-4a9a-a05f-c94493bb883f" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <form>
+        <header/>
+        <sheet string="appointment_line">
+          <div class="oe_title">
+            <h1>
+              <field name="x_name" required="1" placeholder="Name..."/>
+            </h1>
+          </div>
+          <group name="studio_group_5d685d">
+            <group name="studio_group_5d685d_left"/>
+            <group name="studio_group_5d685d_right"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+    <field name="model">x_appointment_line_303b1</field>
+    <field name="name">Default form view for x_appointment_line_303b1</field>
+    <field name="type">form</field>
+  </record>
+  <record id="default_search_view__9f26a2fa-2199-46d4-a55a-3f18b8f42e61" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <search>
+        <field name="x_name"/>
+      </search>
+    </field>
+    <field name="model">x_appointment_line_303b1</field>
+    <field name="name">Default search view for x_appointment_line_303b1</field>
+    <field name="type">search</field>
+  </record>
+  <record id="default_list_view_fo_c08fd7df-ad40-49c0-a58a-e2c864d605cb" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <list editable="bottom" default_order="x_studio_sequence asc,id desc">
+        <field name="x_studio_sequence" widget="handle"/>
+        <field name="x_name"/>
+      </list>
+    </field>
+    <field name="model">x_appointment_stage</field>
+    <field name="name">Default list view for x_appointment_stage</field>
+    <field name="type">list</field>
+  </record>
+  <record id="default_form_view_fo_abb610f3-8dd0-4013-9c73-11e5b68f9707" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <form>
+        <header/>
+        <sheet string="Appointment Stages">
+          <div class="oe_title">
+            <h1>
+              <field name="x_name" required="1" placeholder="Name..."/>
+            </h1>
+          </div>
+          <group name="studio_group_71e924">
+            <group name="studio_group_71e924_left"/>
+            <group name="studio_group_71e924_right"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+    <field name="model">x_appointment_stage</field>
+    <field name="name">Default form view for x_appointment_stage</field>
+    <field name="type">form</field>
+  </record>
+  <record id="default_search_view__d49e07dd-b14e-4704-bc45-1a002de78a68" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <search>
+        <field name="x_name"/>
+      </search>
+    </field>
+    <field name="model">x_appointment_stage</field>
+    <field name="name">Default search view for x_appointment_stage</field>
+    <field name="type">search</field>
+  </record>
+  <record id="default_list_view_fo_021fb12e-c141-4dcf-b436-bfa65e298a3f" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <list editable="bottom" default_order="id desc">
+        <field name="x_name"/>
+        <field name="x_color" widget="color_picker"/>
+      </list>
+    </field>
+    <field name="model">x_appointment_tag</field>
+    <field name="name">Default list view for x_appointment_tag</field>
+    <field name="type">list</field>
+  </record>
+  <record id="default_form_view_fo_82b9e1f8-eeee-4673-bede-4de470433979" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <form>
+        <header/>
+        <sheet string="Appointment Tags">
+          <div class="oe_title">
+            <h1>
+              <field name="x_name" required="1" placeholder="Name..."/>
+            </h1>
+          </div>
+          <group name="studio_group_1972e7">
+            <group name="studio_group_1972e7_left"/>
+            <group name="studio_group_1972e7_right"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+    <field name="model">x_appointment_tag</field>
+    <field name="name">Default form view for x_appointment_tag</field>
+    <field name="type">form</field>
+  </record>
+  <record id="default_search_view__00a66ce9-949c-4245-bd6a-6e0a351fb0a7" model="ir.ui.view" context="{'studio': True}">
+    <field name="arch" type="xml">
+      <search>
+        <field name="x_name"/>
+      </search>
+    </field>
+    <field name="model">x_appointment_tag</field>
+    <field name="name">Default search view for x_appointment_tag</field>
+    <field name="type">search</field>
+  </record>
+</odoo>
