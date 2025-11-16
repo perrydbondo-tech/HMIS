@@ -1,0 +1,783 @@
+# Odoo XML Tutorial: Building Employee App from Scratch
+
+## 1. Module Structure and Manifest File
+
+### `__manifest__.py`
+
+```python
+{
+    'name': 'Employee Management App',
+    'version': '16.0.1.0.0',
+    'category': 'Human Resources',
+    'summary': 'Comprehensive Employee Management System',
+    'description': """
+        Advanced Employee Management System
+        ===================================
+        * Custom employee fields and tracking
+        * Equipment management
+        * Skills and competencies
+        * Performance reviews
+        * Automated workflows
+    """,
+    'author': 'Your Company',
+    'website': 'https://www.yourcompany.com',
+    'depends': ['base', 'hr', 'mail', 'calendar'],
+    'data': [
+        'security/employee_security.xml',
+        'security/ir.model.access.csv',
+        
+        'data/employee_data.xml',
+        'data/equipment_data.xml',
+        'data/mail_templates.xml',
+        
+        'views/employee_views.xml',
+        'views/equipment_views.xml',
+        'views/skill_views.xml',
+        'views/review_views.xml',
+        'views/dashboard_views.xml',
+        'views/res_config_views.xml',
+        
+        'wizard/equipment_assign_wizard_views.xml',
+        'wizard/bulk_operations_views.xml',
+        
+        'report/employee_reports.xml',
+        'report/equipment_reports.xml',
+    ],
+    'demo': [
+        'demo/employee_demo.xml',
+        'demo/equipment_demo.xml',
+    ],
+    'assets': {
+        'web.assets_backend': [
+            'employee_app/static/src/css/employee_style.css',
+            'employee_app/static/src/js/employee_dashboard.js',
+        ],
+    },
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+}
+```
+
+## 2. Security and Access Control XML
+
+### `security/employee_security.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Security Groups -->
+    <record id="group_employee_manager" model="res.groups">
+        <field name="name">Employee Manager</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+        <field name="users" eval="[(4, ref('base.user_root'))]"/>
+    </record>
+
+    <record id="group_equipment_manager" model="res.groups">
+        <field name="name">Equipment Manager</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+        <field name="implied_ids" eval="[(4, ref('group_employee_manager'))]"/>
+    </record>
+
+    <record id="group_hr_user_restricted" model="res.groups">
+        <field name="name">HR User (Restricted)</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+    </record>
+
+    <!-- Record Rules -->
+    <record id="employee_rule_hr_user" model="ir.rule">
+        <field name="name">HR User: Employee Access</field>
+        <field name="model_id" ref="model_custom_employee"/>
+        <field name="domain_force">
+            ['|', ('department_id.manager_id', '=', user.employee_ids.id), ('id', '=', user.employee_ids.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('hr.group_hr_user'))]"/>
+    </record>
+
+    <record id="employee_rule_manager" model="ir.rule">
+        <field name="name">Manager: Full Employee Access</field>
+        <field name="model_id" ref="model_custom_employee"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('employee_app.group_employee_manager'))]"/>
+    </record>
+
+    <record id="equipment_rule_employee" model="ir.rule">
+        <field name="name">Employee: Own Equipment Access</field>
+        <field name="model_id" ref="model_employee_equipment"/>
+        <field name="domain_force">[('employee_id', '=', user.employee_ids.id)]</field>
+        <field name="groups" eval="[(4, ref('hr.group_hr_user'))]"/>
+    </record>
+
+    <record id="equipment_rule_manager" model="ir.rule">
+        <field name="name">Manager: All Equipment Access</field>
+        <field name="model_id" ref="model_employee_equipment"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('employee_app.group_equipment_manager'))]"/>
+    </record>
+
+    <!-- Access Rights -->
+    <record id="custom_employee_access_manager" model="ir.model.access">
+        <field name="name">custom.employee.manager</field>
+        <field name="model_id" ref="model_custom_employee"/>
+        <field name="group_id" ref="employee_app.group_employee_manager"/>
+        <field name="perm_read">1</field>
+        <field name="perm_write">1</field>
+        <field name="perm_create">1</field>
+        <field name="perm_unlink">1</field>
+    </record>
+
+    <record id="employee_equipment_access_manager" model="ir.model.access">
+        <field name="name">employee.equipment.manager</field>
+        <field name="model_id" ref="model_employee_equipment"/>
+        <field name="group_id" ref="employee_app.group_equipment_manager"/>
+        <field name="perm_read">1</field>
+        <field name="perm_write">1</field>
+        <field name="perm_create">1</field>
+        <field name="perm_unlink">1</field>
+    </record>
+</odoo>
+```
+
+### `security/ir.model.access.csv`
+
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_custom_employee_hr_user,custom.employee.hr.user,model_custom_employee,hr.group_hr_user,1,1,1,0
+access_custom_employee_employee,custom.employee.employee,model_custom_employee,hr.group_hr_user,1,0,0,0
+access_employee_skill_all,employee.skill.all,model_employee_skill,hr.group_hr_user,1,1,1,1
+access_employee_equipment_hr_user,employee.equipment.hr.user,model_employee_equipment,hr.group_hr_user,1,1,1,0
+access_employee_review_manager,employee.review.manager,model_employee_review,employee_app.group_employee_manager,1,1,1,1
+access_employee_review_user,employee.review.user,model_employee_review,hr.group_hr_user,1,1,1,0
+```
+
+## 3. Employee Views XML
+
+### `views/employee_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View for Custom Employee -->
+    <record id="view_custom_employee_form" model="ir.ui.view">
+        <field name="name">custom.employee.form</field>
+        <field name="model">custom.employee</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_send_welcome_email" type="object" string="Send Welcome Email" class="btn-primary" attrs="{'invisible': [('work_email', '=', False)]}"/>
+                    <button name="action_view_equipment" type="object" string="View Equipment" class="btn-secondary"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,inactive,archived"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Employee Name" class="mb16"/>
+                        </h1>
+                        <field name="employee_code" readonly="1" class="oe_inline"/>
+                    </div>
+                    
+                    <group>
+                        <group string="Personal Information">
+                            <field name="nickname"/>
+                            <field name="birthday"/>
+                            <field name="gender"/>
+                            <field name="marital"/>
+                            <field name="emergency_contact_name"/>
+                            <field name="emergency_contact_phone"/>
+                            <field name="emergency_contact_relation"/>
+                        </group>
+                        
+                        <group string="Employment Details">
+                            <field name="employment_type" widget="radio"/>
+                            <field name="probation_end_date"/>
+                            <field name="notice_period"/>
+                            <field name="retirement_date" readonly="1"/>
+                            <field name="department_id"/>
+                            <field name="job_id"/>
+                            <field name="parent_id"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Contact Information">
+                            <group>
+                                <group string="Work Contact">
+                                    <field name="work_phone"/>
+                                    <field name="work_email"/>
+                                    <field name="work_location"/>
+                                </group>
+                                <group string="Personal Contact">
+                                    <field name="personal_email"/>
+                                    <field name="mobile_phone"/>
+                                    <field name="address_home_id"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <page string="Skills &amp; Qualifications">
+                            <field name="skills_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                            <field name="certifications" widget="html"/>
+                            <field name="languages"/>
+                        </page>
+                        
+                        <page string="Assigned Equipment">
+                            <field name="assigned_equipment_ids" mode="tree,form">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="equipment_code"/>
+                                    <field name="category"/>
+                                    <field name="assignment_date"/>
+                                    <field name="state" widget="badge" decoration-success="state=='assigned'" decoration-warning="state=='maintenance'" decoration-danger="state in ['lost','damaged']"/>
+                                </tree>
+                            </field>
+                        </page>
+                        
+                        <page string="Documents">
+                            <field name="message_main_attachment_id"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View for Custom Employee -->
+    <record id="view_custom_employee_tree" model="ir.ui.view">
+        <field name="name">custom.employee.tree</field>
+        <field name="model">custom.employee</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="employment_type=='full_time'" decoration-warning="employment_type=='probation'">
+                <field name="employee_code"/>
+                <field name="name"/>
+                <field name="department_id"/>
+                <field name="job_id"/>
+                <field name="employment_type" widget="badge"/>
+                <field name="work_email"/>
+                <field name="work_phone"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Search View for Custom Employee -->
+    <record id="view_custom_employee_search" model="ir.ui.view">
+        <field name="name">custom.employee.search</field>
+        <field name="model">custom.employee</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Employee Name" filter_domain="['|', ('name', 'ilike', self), ('employee_code', 'ilike', self)]"/>
+                <field name="employee_code"/>
+                <field name="department_id"/>
+                <field name="employment_type"/>
+                <field name="job_id"/>
+                
+                <filter string="Active Employees" name="active_employees" domain="[('active', '=', True)]"/>
+                <filter string="On Probation" name="probation" domain="[('employment_type', '=', 'probation')]"/>
+                <filter string="Full-Time" name="full_time" domain="[('employment_type', '=', 'full_time')]"/>
+                
+                <group expand="0" string="Group By">
+                    <filter string="Department" name="department" context="{'group_by': 'department_id'}"/>
+                    <filter string="Job Position" name="job" context="{'group_by': 'job_id'}"/>
+                    <filter string="Employment Type" name="employment_type" context="{'group_by': 'employment_type'}"/>
+                    <filter string="Manager" name="manager" context="{'group_by': 'parent_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Kanban View for Custom Employee -->
+    <record id="view_custom_employee_kanban" model="ir.ui.view">
+        <field name="name">custom.employee.kanban</field>
+        <field name="model">custom.employee</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="department_id">
+                <field name="name"/>
+                <field name="employee_code"/>
+                <field name="department_id"/>
+                <field name="job_id"/>
+                <field name="employment_type"/>
+                <field name="image_1920"/>
+                
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong>
+                                        <field name="name"/>
+                                    </strong>
+                                    <div>
+                                        <field name="employee_code"/>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_top_side">
+                                    <img t-att-src="kanban_image('custom.employee', 'image_1920', record.id.raw_value)" class="oe_kanban_image" alt="Employee Image"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div>
+                                    <field name="department_id" widget="badge"/>
+                                </div>
+                                <div>
+                                    <field name="job_id" widget="badge"/>
+                                </div>
+                                <div>
+                                    <field name="employment_type" widget="badge" 
+                                           decoration-success="employment_type == 'full_time'"
+                                           decoration-warning="employment_type == 'probation'"
+                                           decoration-muted="employment_type == 'part_time'"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+</odoo>
+```
+
+## 4. Equipment Management Views
+
+### `views/equipment_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Equipment Form View -->
+    <record id="view_employee_equipment_form" model="ir.ui.view">
+        <field name="name">employee.equipment.form</field>
+        <field name="model">employee.equipment</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_return_equipment" type="object" string="Return Equipment" class="btn-primary" attrs="{'invisible': [('state', '!=', 'assigned')]}"/>
+                    <button name="action_send_maintenance_alert" type="object" string="Maintenance Alert" class="btn-warning" attrs="{'invisible': [('state', '!=', 'assigned')]}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,assigned,maintenance,returned,lost,damaged"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Equipment Name"/>
+                        </h1>
+                        <field name="equipment_code" readonly="1" class="oe_inline"/>
+                    </div>
+                    
+                    <group>
+                        <group string="Equipment Details">
+                            <field name="category" widget="radio"/>
+                            <field name="brand"/>
+                            <field name="model"/>
+                            <field name="serial_number"/>
+                            <field name="purchase_date"/>
+                            <field name="warranty_end_date"/>
+                            <field name="purchase_cost"/>
+                        </group>
+                        
+                        <group string="Assignment Details">
+                            <field name="employee_id" options="{'no_create': True}"/>
+                            <field name="assignment_date"/>
+                            <field name="expected_return_date"/>
+                            <field name="actual_return_date" attrs="{'readonly': [('state', '!=', 'returned')]}"/>
+                            <field name="condition_notes"/>
+                        </group>
+                    </group>
+                </sheet>
+                
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Equipment Tree View -->
+    <record id="view_employee_equipment_tree" model="ir.ui.view">
+        <field name="name">employee.equipment.tree</field>
+        <field name="model">employee.equipment</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='assigned'" decoration-warning="state=='maintenance'" decoration-danger="state in ['lost','damaged']">
+                <field name="name"/>
+                <field name="equipment_code"/>
+                <field name="category"/>
+                <field name="employee_id"/>
+                <field name="assignment_date"/>
+                <field name="state" widget="badge"/>
+                <field name="warranty_end_date"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Equipment Search View -->
+    <record id="view_employee_equipment_search" model="ir.ui.view">
+        <field name="name">employee.equipment.search</field>
+        <field name="model">employee.equipment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="equipment_code"/>
+                <field name="employee_id"/>
+                <field name="serial_number"/>
+                
+                <filter string="Assigned Equipment" name="assigned" domain="[('state', '=', 'assigned')]"/>
+                <filter string="Under Maintenance" name="maintenance" domain="[('state', '=', 'maintenance')]"/>
+                <filter string="Warranty Expiring Soon" name="warranty_expiring" domain="[('warranty_end_date', '&lt;=', (context_today() + relativedelta(months=1)).strftime('%Y-%m-%d'))]"/>
+                
+                <group expand="0" string="Group By">
+                    <filter string="Category" name="category" context="{'group_by': 'category'}"/>
+                    <filter string="Employee" name="employee" context="{'group_by': 'employee_id'}"/>
+                    <filter string="Status" name="status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>
+```
+
+## 5. Menu Structure and Actions
+
+### `views/menu_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main Menu Items -->
+    <menuitem id="menu_employee_main" name="Employee Management" sequence="10"/>
+    
+    <!-- Employee Submenu -->
+    <menuitem id="menu_employee_management" name="Employees" parent="menu_employee_main" sequence="10"/>
+    <menuitem id="menu_employee_list" name="Employee List" parent="menu_employee_management" action="action_custom_employee" sequence="10"/>
+    <menuitem id="menu_employee_kanban" name="Employee Kanban" parent="menu_employee_management" action="action_custom_employee_kanban" sequence="20"/>
+    
+    <!-- Equipment Submenu -->
+    <menuitem id="menu_equipment_management" name="Equipment" parent="menu_employee_main" sequence="20"/>
+    <menuitem id="menu_equipment_list" name="Equipment List" parent="menu_equipment_management" action="action_employee_equipment" sequence="10"/>
+    
+    <!-- Skills Submenu -->
+    <menuitem id="menu_skills_management" name="Skills" parent="menu_employee_main" sequence="30"/>
+    <menuitem id="menu_skills_list" name="Skill Catalog" parent="menu_skills_management" action="action_employee_skill" sequence="10"/>
+    
+    <!-- Reviews Submenu -->
+    <menuitem id="menu_reviews_management" name="Performance" parent="menu_employee_main" sequence="40"/>
+    <menuitem id="menu_reviews_list" name="Performance Reviews" parent="menu_reviews_management" action="action_employee_review" sequence="10"/>
+    
+    <!-- Reports Submenu -->
+    <menuitem id="menu_reports" name="Reports" parent="menu_employee_main" sequence="50"/>
+    <menuitem id="menu_employee_reports" name="Employee Reports" parent="menu_reports" action="action_employee_report" sequence="10"/>
+    <menuitem id="menu_equipment_reports" name="Equipment Reports" parent="menu_reports" action="action_equipment_report" sequence="20"/>
+    
+    <!-- Configuration Submenu -->
+    <menuitem id="menu_configuration" name="Configuration" parent="menu_employee_main" sequence="60"/>
+    <menuitem id="menu_app_config" name="App Settings" parent="menu_configuration" action="action_employee_app_config" sequence="10"/>
+
+    <!-- Actions -->
+    <record id="action_custom_employee" model="ir.actions.act_window">
+        <field name="name">Employees</field>
+        <field name="res_model">custom.employee</field>
+        <field name="view_mode">tree,form,kanban</field>
+        <field name="view_id" ref="view_custom_employee_tree"/>
+        <field name="search_view_id" ref="view_custom_employee_search"/>
+        <field name="context">{'search_default_active_employees': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first employee!
+            </p>
+        </field>
+    </record>
+
+    <record id="action_custom_employee_kanban" model="ir.actions.act_window">
+        <field name="name">Employees Kanban</field>
+        <field name="res_model">custom.employee</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_id" ref="view_custom_employee_kanban"/>
+        <field name="search_view_id" ref="view_custom_employee_search"/>
+    </record>
+
+    <record id="action_employee_equipment" model="ir.actions.act_window">
+        <field name="name">Equipment</field>
+        <field name="res_model">employee.equipment</field>
+        <field name="view_mode">tree,form,kanban</field>
+        <field name="view_id" ref="view_employee_equipment_tree"/>
+        <field name="search_view_id" ref="view_employee_equipment_search"/>
+        <field name="context">{'search_default_assigned': 1}</field>
+    </record>
+
+    <record id="action_employee_skill" model="ir.actions.act_window">
+        <field name="name">Skills Catalog</field>
+        <field name="res_model">employee.skill</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Define skills and competencies for your employees!
+            </p>
+        </field>
+    </record>
+
+    <record id="action_employee_review" model="ir.actions.act_window">
+        <field name="name">Performance Reviews</field>
+        <field name="res_model">employee.review</field>
+        <field name="view_mode">tree,form,calendar</field>
+        <field name="context">{'search_default_draft': 1}</field>
+    </record>
+
+    <!-- Server Actions -->
+    <record id="action_employee_onboarding" model="ir.actions.server">
+        <field name="name">Employee Onboarding Process</field>
+        <field name="model_id" ref="model_custom_employee"/>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.employee_onboarding_process()
+</field>
+    </record>
+
+    <record id="action_bulk_equipment_assignment" model="ir.actions.server">
+        <field name="name">Bulk Equipment Assignment</field>
+        <field name="model_id" ref="model_custom_employee"/>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.bulk_equipment_assignment()
+</field>
+    </record>
+</odoo>
+```
+
+## 6. Data Files and Demo Data
+
+### `data/employee_data.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Employee Sequences -->
+    <record id="seq_employee_code" model="ir.sequence">
+        <field name="name">Employee Code</field>
+        <field name="code">custom.employee.code</field>
+        <field name="prefix">EMP</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">10001</field>
+    </record>
+
+    <record id="seq_equipment_code" model="ir.sequence">
+        <field name="name">Equipment Code</field>
+        <field name="code">employee.equipment.code</field>
+        <field name="prefix">EQ</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">1001</field>
+    </record>
+
+    <!-- Default Skills -->
+    <record id="skill_communication" model="employee.skill">
+        <field name="name">Communication</field>
+        <field name="category">soft</field>
+        <field name="description">Effective verbal and written communication skills</field>
+    </record>
+
+    <record id="skill_teamwork" model="employee.skill">
+        <field name="name">Teamwork</field>
+        <field name="category">soft</field>
+        <field name="description">Collaboration and team player abilities</field>
+    </record>
+
+    <record id="skill_python" model="employee.skill">
+        <field name="name">Python Programming</field>
+        <field name="category">technical</field>
+        <field name="description">Python development and scripting</field>
+    </record>
+
+    <record id="skill_odoo" model="employee.skill">
+        <field name="name">Odoo Development</field>
+        <field name="category">technical</field>
+        <field name="description">Odoo framework and module development</field>
+    </record>
+
+    <!-- Equipment Categories -->
+    <record id="equipment_category_laptop" model="employee.equipment.category">
+        <field name="name">Laptop</field>
+        <field name="description">Portable computers and laptops</field>
+    </record>
+
+    <record id="equipment_category_mobile" model="employee.equipment.category">
+        <field name="name">Mobile Phone</field>
+        <field name="description">Smartphones and mobile devices</field>
+    </record>
+</odoo>
+```
+
+### `data/mail_templates.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Welcome Email Template -->
+    <record id="email_template_employee_welcome" model="mail.template">
+        <field name="name">Employee: Welcome Email</field>
+        <field name="model_id" ref="model_custom_employee"/>
+        <field name="email_from">${object.company_id.email or ''}</field>
+        <field name="email_to">${object.work_email}</field>
+        <field name="subject">Welcome to ${object.company_id.name} - ${object.name}</field>
+        <field name="body_html" type="html">
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #875A7B;">Welcome to ${object.company_id.name}!</h2>
+                
+                <p>Dear <strong>${object.name}</strong>,</p>
+                
+                <p>We are thrilled to welcome you to our team! Your journey with ${object.company_id.name} begins now.</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="color: #875A7B;">Your Employee Details:</h3>
+                    <ul>
+                        <li><strong>Employee ID:</strong> ${object.employee_code}</li>
+                        <li><strong>Department:</strong> ${object.department_id.name or 'To be assigned'}</li>
+                        <li><strong>Position:</strong> ${object.job_id.name or 'To be assigned'}</li>
+                        <li><strong>Manager:</strong> ${object.parent_id.name or 'To be assigned'}</li>
+                    </ul>
+                </div>
+                
+                <p>Next steps in your onboarding process will be communicated by your manager.</p>
+                
+                <p>If you have any questions, please don't hesitate to reach out to HR or your manager.</p>
+                
+                <p>Best regards,<br/>
+                <strong>HR Team</strong><br/>
+                ${object.company_id.name}</p>
+            </div>
+        </field>
+    </record>
+
+    <!-- Equipment Assignment Template -->
+    <record id="email_template_equipment_assignment" model="mail.template">
+        <field name="name">Equipment: Assignment Notification</field>
+        <field name="model_id" ref="model_employee_equipment"/>
+        <field name="email_from">${object.employee_id.company_id.email or ''}</field>
+        <field name="email_to">${object.employee_id.work_email}</field>
+        <field name="subject">Equipment Assignment - ${object.name}</field>
+        <field name="body_html" type="html">
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #875A7B;">Equipment Assignment</h2>
+                
+                <p>Dear <strong>${object.employee_id.name}</strong>,</p>
+                
+                <p>The following equipment has been assigned to you:</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h3 style="color: #875A7B;">Equipment Details:</h3>
+                    <ul>
+                        <li><strong>Equipment:</strong> ${object.name}</li>
+                        <li><strong>Asset ID:</strong> ${object.equipment_code}</li>
+                        <li><strong>Category:</strong> ${object.category}</li>
+                        <li><strong>Assignment Date:</strong> ${object.assignment_date}</li>
+                        <li><strong>Serial Number:</strong> ${object.serial_number or 'N/A'}</li>
+                    </ul>
+                </div>
+                
+                <p>Please ensure you follow company policies for equipment usage and care.</p>
+                
+                <p>If you have any issues with the assigned equipment, please contact IT support.</p>
+                
+                <p>Best regards,<br/>
+                <strong>IT Department</strong><br/>
+                ${object.employee_id.company_id.name}</p>
+            </div>
+        </field>
+    </record>
+</odoo>
+```
+
+## 7. Reports and QWeb Templates
+
+### `report/employee_reports.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Employee Directory Report -->
+    <record id="report_employee_directory" model="ir.actions.report">
+        <field name="name">Employee Directory</field>
+        <field name="model">custom.employee</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">employee_app.employee_directory_report</field>
+        <field name="print_report_name">'employee_directory_%s' % (object.employee_code)</field>
+        <field name="binding_model_id" ref="model_custom_employee"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="employee_directory_report">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div class="row">
+                            <div class="col-12">
+                                <h2>Employee Directory - <span t-esc="doc.company_id.name"/></h2>
+                                <p>Generated on: <span t-esc="datetime.datetime.now().strftime('%Y-%m-%d %H:%M')"/></p>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-3">
+                                <img t-if="doc.image_1920" t-att-src="image_data_uri(doc.image_1920)" style="max-width: 150px; max-height: 150px;" class="img-fluid"/>
+                            </div>
+                            <div class="col-9">
+                                <table class="table table-bordered">
+                                    <tr>
+                                        <td><strong>Employee ID:</strong></td>
+                                        <td><span t-esc="doc.employee_code"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Name:</strong></td>
+                                        <td><span t-esc="doc.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Department:</strong></td>
+                                        <td><span t-esc="doc.department_id.name or ''"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Job Position:</strong></td>
+                                        <td><span t-esc="doc.job_id.name or ''"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Employment Type:</strong></td>
+                                        <td><span t-esc="dict(doc._fields['employment_type'].selection).get(doc.employment_type)"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Work Email:</strong></td>
+                                        <td><span t-esc="doc.work_email or ''"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Work Phone:</strong></td>
+                                        <td><span t-esc="doc.work_phone or ''"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4" t-if="doc.assigned_equipment_ids">
+                            <div class="col-12">
+                                <h4>Assigned Equipment</h4>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Equipment</th>
+                                            <th>Asset ID</th>
+                                            <th>Category</th>
+                                            <th>Assignment Date</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr t-foreach="doc.assigned_equipment_ids" t-as="equipment">
+                                            <td><span t-esc="equipment.name"/></td>
+                                            <td><span t-esc="equipment.equipment_code"/></td>
+                                            <td><span t-esc="equipment.category"/
