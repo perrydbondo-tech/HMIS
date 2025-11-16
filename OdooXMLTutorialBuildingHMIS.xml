@@ -1,0 +1,751 @@
+# Odoo XML Tutorial: Building HMIS (Hospital Management Information System)
+
+## 1. HMIS Module Structure and Manifest
+
+### `__manifest__.py`
+
+```python
+{
+    'name': 'Hospital Management Information System',
+    'version': '16.0.1.0.0',
+    'category': 'Healthcare',
+    'summary': 'Comprehensive Hospital Management System',
+    'description': """
+        HMIS - Hospital Management Information System
+        =============================================
+        * Patient Management
+        * Appointment Scheduling
+        * Medical Records
+        * Pharmacy Management
+        * Billing and Invoicing
+        * Laboratory Management
+        * Inventory Management
+        * Reporting and Analytics
+    """,
+    'author': 'Your Healthcare Organization',
+    'website': 'https://www.yourhospital.com',
+    'depends': [
+        'base', 
+        'mail', 
+        'calendar', 
+        'account', 
+        'stock', 
+        'product',
+        'web'
+    ],
+    'data': [
+        # Security
+        'security/hmis_security.xml',
+        'security/ir.model.access.csv',
+        'security/ir_rule.xml',
+        
+        # Data
+        'data/hmis_sequences.xml',
+        'data/hmis_data.xml',
+        'data/appointment_types.xml',
+        'data/disease_data.xml',
+        'data/medicine_data.xml',
+        'data/mail_templates.xml',
+        
+        # Views
+        'views/hmis_menu_views.xml',
+        'views/patient_views.xml',
+        'views/appointment_views.xml',
+        'views/doctor_views.xml',
+        'views/medical_record_views.xml',
+        'views/prescription_views.xml',
+        'views/lab_test_views.xml',
+        'views/ward_views.xml',
+        'views/bed_views.xml',
+        'views/medicine_views.xml',
+        'views/billing_views.xml',
+        'views/department_views.xml',
+        
+        # Reports
+        'report/medical_reports.xml',
+        'report/patient_reports.xml',
+        'report/lab_reports.xml',
+        'report/billing_reports.xml',
+        
+        # Wizards
+        'wizard/appointment_wizard_views.xml',
+        'wizard/prescription_wizard_views.xml',
+        'wizard/lab_request_wizard_views.xml',
+        'wizard/bulk_operations_views.xml',
+        
+        # Dashboard
+        'views/hmis_dashboard_views.xml',
+    ],
+    'demo': [
+        'demo/patient_demo.xml',
+        'demo/doctor_demo.xml',
+        'demo/appointment_demo.xml',
+    ],
+    'assets': {
+        'web.assets_backend': [
+            'hmis/static/src/css/hmis_style.css',
+            'hmis/static/src/js/hmis_dashboard.js',
+            'hmis/static/src/xml/hmis_dashboard.xml',
+        ],
+    },
+    'application': True,
+    'installable': True,
+    'auto_install': False,
+    'license': 'LGPL-3',
+}
+```
+
+## 2. Security and Access Control
+
+### `security/hmis_security.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- HMIS Security Groups -->
+    <record id="group_hmis_admin" model="res.groups">
+        <field name="name">HMIS Administrator</field>
+        <field name="category_id" ref="base.module_category_services_healthcare"/>
+        <field name="users" eval="[(4, ref('base.user_root'))]"/>
+    </record>
+
+    <record id="group_hmis_doctor" model="res.groups">
+        <field name="name">Doctor</field>
+        <field name="category_id" ref="base.module_category_services_healthcare"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_hmis_nurse" model="res.groups">
+        <field name="name">Nurse</field>
+        <field name="category_id" ref="base.module_category_services_healthcare"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_hmis_reception" model="res.groups">
+        <field name="name">Receptionist</field>
+        <field name="category_id" ref="base.module_category_services_healthcare"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_hmis_pharmacist" model="res.groups">
+        <field name="name">Pharmacist</field>
+        <field name="category_id" ref="base.module_category_services_healthcare"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="group_hmis_lab" model="res.groups">
+        <field name="name">Lab Technician</field>
+        <field name="category_id" ref="base.module_category_services_healthcare"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Record Rules for Data Access Control -->
+    <record id="hmis_patient_rule_doctor" model="ir.rule">
+        <field name="name">Doctor: Patient Access</field>
+        <field name="model_id" ref="model_hmis_patient"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('hmis.group_hmis_doctor'))]"/>
+    </record>
+
+    <record id="hmis_patient_rule_reception" model="ir.rule">
+        <field name="name">Reception: Patient Access</field>
+        <field name="model_id" ref="model_hmis_patient"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('hmis.group_hmis_reception'))]"/>
+    </record>
+
+    <record id="hmis_medical_record_rule_doctor" model="ir.rule">
+        <field name="name">Doctor: Medical Record Access</field>
+        <field name="model_id" ref="model_hmis_medical_record"/>
+        <field name="domain_force">
+            ['|', ('doctor_id', '=', user.id), ('patient_id.doctor_id', '=', user.id)]
+        </field>
+        <field name="groups" eval="[(4, ref('hmis.group_hmis_doctor'))]"/>
+    </record>
+
+    <record id="hmis_prescription_rule_pharmacist" model="ir.rule">
+        <field name="name">Pharmacist: Prescription Access</field>
+        <field name="model_id" ref="model_hmis_prescription"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('hmis.group_hmis_pharmacist'))]"/>
+    </record>
+</odoo>
+```
+
+### `security/ir.model.access.csv`
+
+```csv
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hmis_patient_admin,hmis.patient.admin,model_hmis_patient,hmis.group_hmis_admin,1,1,1,1
+access_hmis_patient_doctor,hmis.patient.doctor,model_hmis_patient,hmis.group_hmis_doctor,1,1,1,0
+access_hmis_patient_reception,hmis.patient.reception,model_hmis_patient,hmis.group_hmis_reception,1,1,1,0
+access_hmis_appointment_admin,hmis.appointment.admin,model_hmis_appointment,hmis.group_hmis_admin,1,1,1,1
+access_hmis_appointment_doctor,hmis.appointment.doctor,model_hmis_appointment,hmis.group_hmis_doctor,1,1,1,0
+access_hmis_medical_record_doctor,hmis.medical.record.doctor,model_hmis_medical_record,hmis.group_hmis_doctor,1,1,1,0
+access_hmis_prescription_doctor,hmis.prescription.doctor,model_hmis_prescription,hmis.group_hmis_doctor,1,1,1,0
+access_hmis_prescription_pharmacist,hmis.prescription.pharmacist,model_hmis_prescription,hmis.group_hmis_pharmacist,1,1,1,0
+access_hmis_lab_test_doctor,hmis.lab.test.doctor,model_hmis_lab_test,hmis.group_hmis_doctor,1,1,1,0
+access_hmis_lab_test_lab,hmis.lab.test.lab,model_hmis_lab_test,hmis.group_hmis_lab,1,1,1,0
+```
+
+## 3. Patient Management Views
+
+### `views/patient_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Patient Form View -->
+    <record id="view_hmis_patient_form" model="ir.ui.view">
+        <field name="name">hmis.patient.form</field>
+        <field name="model">hmis.patient</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_create_appointment" type="object" string="New Appointment" class="btn-primary"/>
+                    <button name="action_create_prescription" type="object" string="New Prescription" class="btn-secondary"/>
+                    <button name="action_view_medical_history" type="object" string="Medical History" class="btn-default"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,active,inactive,deceased"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Patient Full Name" class="mb16"/>
+                        </h1>
+                        <div class="oe_inline">
+                            <field name="patient_id" readonly="1"/>
+                            <field name="age" readonly="1" string="Age" class="ml16"/>
+                        </div>
+                    </div>
+                    
+                    <group>
+                        <group string="Personal Information">
+                            <field name="date_of_birth"/>
+                            <field name="gender" widget="radio"/>
+                            <field name="blood_type"/>
+                            <field name="marital_status"/>
+                            <field name="national_id"/>
+                            <field name="phone" widget="phone"/>
+                            <field name="email" widget="email"/>
+                        </group>
+                        
+                        <group string="Medical Information">
+                            <field name="weight" string="Weight (kg)"/>
+                            <field name="height" string="Height (cm)"/>
+                            <field name="bmi" readonly="1" string="BMI"/>
+                            <field name="allergies" widget="textarea"/>
+                            <field name="medical_history" widget="textarea"/>
+                            <field name="current_medications" widget="textarea"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Contact &amp; Insurance">
+                        <group string="Address">
+                            <field name="street"/>
+                            <field name="street2"/>
+                            <field name="city"/>
+                            <field name="state_id"/>
+                            <field name="zip"/>
+                            <field name="country_id"/>
+                        </group>
+                        
+                        <group string="Insurance &amp; Emergency">
+                            <field name="insurance_id"/>
+                            <field name="insurance_provider"/>
+                            <field name="insurance_expiry_date"/>
+                            <field name="emergency_contact"/>
+                            <field name="emergency_phone" widget="phone"/>
+                            <field name="emergency_relation"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="Appointments">
+                            <field name="appointment_ids" mode="tree,form">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="appointment_date"/>
+                                    <field name="doctor_id"/>
+                                    <field name="department_id"/>
+                                    <field name="state" widget="badge" 
+                                           decoration-success="state=='done'"
+                                           decoration-warning="state in ['confirmed','in_consultation']"
+                                           decoration-danger="state=='cancelled'"/>
+                                </tree>
+                                <form>
+                                    <field name="name"/>
+                                    <field name="appointment_date"/>
+                                    <field name="doctor_id"/>
+                                    <field name="reason"/>
+                                </form>
+                            </field>
+                        </page>
+                        
+                        <page string="Medical Records">
+                            <field name="medical_record_ids" mode="tree,form">
+                                <tree>
+                                    <field name="visit_date"/>
+                                    <field name="doctor_id"/>
+                                    <field name="diagnosis"/>
+                                    <field name="treatment"/>
+                                </tree>
+                            </field>
+                        </page>
+                        
+                        <page string="Prescriptions">
+                            <field name="prescription_ids" mode="tree,form">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="prescription_date"/>
+                                    <field name="doctor_id"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                        </page>
+                        
+                        <page string="Lab Tests">
+                            <field name="lab_test_ids" mode="tree,form">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="test_date"/>
+                                    <field name="test_type"/>
+                                    <field name="state" widget="badge"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Patient Tree View -->
+    <record id="view_hmis_patient_tree" model="ir.ui.view">
+        <field name="name">hmis.patient.tree</field>
+        <field name="model">hmis.patient</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='active'" decoration-muted="state=='inactive'" decoration-danger="state=='deceased'">
+                <field name="patient_id"/>
+                <field name="name"/>
+                <field name="age"/>
+                <field name="gender"/>
+                <field name="blood_type"/>
+                <field name="phone" widget="phone"/>
+                <field name="insurance_provider"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Patient Search View -->
+    <record id="view_hmis_patient_search" model="ir.ui.view">
+        <field name="name">hmis.patient.search</field>
+        <field name="model">hmis.patient</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Patient Name"/>
+                <field name="patient_id"/>
+                <field name="phone"/>
+                <field name="national_id"/>
+                <field name="insurance_id"/>
+                
+                <filter string="Active Patients" name="active" domain="[('state', '=', 'active')]"/>
+                <filter string="New Patients This Month" name="new_this_month" domain="[('create_date', '>=', (context_today().replace(day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Patients with Allergies" name="with_allergies" domain="[('allergies', '!=', False)]"/>
+                
+                <group expand="0" string="Group By">
+                    <filter string="Blood Type" name="blood_type" context="{'group_by': 'blood_type'}"/>
+                    <filter string="Gender" name="gender" context="{'group_by': 'gender'}"/>
+                    <filter string="Insurance Provider" name="insurance" context="{'group_by': 'insurance_provider'}"/>
+                    <filter string="Status" name="status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Patient Kanban View -->
+    <record id="view_hmis_patient_kanban" model="ir.ui.view">
+        <field name="name">hmis.patient.kanban</field>
+        <field name="model">hmis.patient</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state">
+                <field name="name"/>
+                <field name="patient_id"/>
+                <field name="image_1920"/>
+                <field name="state"/>
+                <field name="blood_type"/>
+                <field name="age"/>
+                
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top">
+                                <div class="o_kanban_record_headings">
+                                    <strong>
+                                        <field name="name"/>
+                                    </strong>
+                                    <div>
+                                        <field name="patient_id"/>
+                                        <span class="ml-2">•</span>
+                                        <field name="age" string="Age" class="ml-2"/>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_top_side">
+                                    <img t-att-src="kanban_image('hmis.patient', 'image_1920', record.id.raw_value)" 
+                                         class="oe_kanban_image" alt="Patient Photo" width="64" height="64"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div>
+                                    <field name="blood_type" widget="badge" 
+                                           decoration-success="blood_type == 'o_positive'"
+                                           decoration-warning="blood_type == 'ab_negative'"/>
+                                </div>
+                                <div>
+                                    <field name="state" widget="badge"
+                                           decoration-success="state == 'active'"
+                                           decoration-muted="state == 'inactive'"
+                                           decoration-danger="state == 'deceased'"/>
+                                </div>
+                                <div t-if="record.allergies.raw_value">
+                                    <span class="badge badge-warning">Allergies</span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+</odoo>
+```
+
+## 4. Appointment Management Views
+
+### `views/appointment_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Appointment Form View -->
+    <record id="view_hmis_appointment_form" model="ir.ui.view">
+        <field name="name">hmis.appointment.form</field>
+        <field name="model">hmis.appointment</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary" 
+                            attrs="{'invisible': [('state', '!=', 'draft')]}"/>
+                    <button name="action_start_consultation" type="object" string="Start Consultation" class="btn-warning"
+                            attrs="{'invisible': [('state', '!=', 'confirmed')]}"/>
+                    <button name="action_complete" type="object" string="Complete" class="btn-success"
+                            attrs="{'invisible': [('state', '!=', 'in_consultation')]}"/>
+                    <button name="action_cancel" type="object" string="Cancel" class="btn-danger"
+                            attrs="{'invisible': [('state', 'in', ['done', 'cancelled'])]}"/>
+                    <field name="state" widget="statusbar" 
+                           statusbar_visible="draft,confirmed,in_consultation,done,cancelled"
+                           clickable="true"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                        <field name="priority" widget="priority" class="oe_inline"/>
+                    </div>
+                    
+                    <group>
+                        <group string="Appointment Details">
+                            <field name="patient_id" options="{'no_create': False, 'no_open': False}"/>
+                            <field name="doctor_id" domain="[('is_doctor', '=', True)]"/>
+                            <field name="department_id"/>
+                            <field name="appointment_type"/>
+                            <field name="appointment_date" string="Date &amp; Time"/>
+                            <field name="duration"/>
+                        </group>
+                        
+                        <group string="Medical Information">
+                            <field name="reason" widget="textarea" placeholder="Reason for visit..."/>
+                            <field name="symptoms" widget="textarea" placeholder="Patient symptoms..."/>
+                            <field name="diagnosis" widget="textarea" 
+                                   attrs="{'readonly': [('state', 'not in', ['in_consultation', 'done'])]}"
+                                   placeholder="Doctor diagnosis..."/>
+                            <field name="notes" widget="textarea" 
+                                   attrs="{'readonly': [('state', 'not in', ['in_consultation', 'done'])]}"
+                                   placeholder="Doctor notes..."/>
+                        </group>
+                    </group>
+                    
+                    <div t-if="state in ['in_consultation','done']" class="alert alert-info mt-4">
+                        <strong>Consultation Tools:</strong>
+                        <button name="action_create_prescription" type="object" string="Create Prescription" class="btn btn-sm btn-primary ml-2"/>
+                        <button name="action_request_lab_test" type="object" string="Request Lab Test" class="btn btn-sm btn-secondary ml-2"/>
+                        <button name="action_create_medical_record" type="object" string="Create Medical Record" class="btn btn-sm btn-info ml-2"/>
+                    </div>
+                </sheet>
+                
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Appointment Tree View -->
+    <record id="view_hmis_appointment_tree" model="ir.ui.view">
+        <field name="name">hmis.appointment.tree</field>
+        <field name="model">hmis.appointment</field>
+        <field name="arch" type="xml">
+            <tree decoration-success="state=='done'" decoration-warning="state in ['confirmed','in_consultation']" decoration-danger="state=='cancelled'">
+                <field name="name"/>
+                <field name="patient_id"/>
+                <field name="doctor_id"/>
+                <field name="appointment_date"/>
+                <field name="appointment_type"/>
+                <field name="priority" widget="priority"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Appointment Calendar View -->
+    <record id="view_hmis_appointment_calendar" model="ir.ui.view">
+        <field name="name">hmis.appointment.calendar</field>
+        <field name="model">hmis.appointment</field>
+        <field name="arch" type="xml">
+            <calendar date_start="appointment_date" date_stop="appointment_end" color="doctor_id"
+                      string="Appointments" mode="month">
+                <field name="name"/>
+                <field name="patient_id"/>
+                <field name="doctor_id"/>
+                <field name="state"/>
+                <templates>
+                    <div t-name="calendar-box">
+                        <div class="fc-content">
+                            <div class="fc-title">
+                                <field name="patient_id"/>
+                            </div>
+                            <div class="fc-time">
+                                <field name="doctor_id"/>
+                            </div>
+                        </div>
+                    </div>
+                </templates>
+            </calendar>
+        </field>
+    </record>
+</odoo>
+```
+
+## 5. Menu Structure and Navigation
+
+### `views/hmis_menu_views.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main HMIS Menu -->
+    <menuitem id="menu_hmis_main" name="HMIS" sequence="10"/>
+    
+    <!-- Patient Management -->
+    <menuitem id="menu_hmis_patient" name="Patient Management" parent="menu_hmis_main" sequence="10"/>
+    <menuitem id="menu_hmis_patient_list" name="Patients" parent="menu_hmis_patient" action="action_hmis_patient" sequence="10"/>
+    <menuitem id="menu_hmis_patient_kanban" name="Patient Dashboard" parent="menu_hmis_patient" action="action_hmis_patient_kanban" sequence="20"/>
+    
+    <!-- Appointment Management -->
+    <menuitem id="menu_hmis_appointment" name="Appointments" parent="menu_hmis_main" sequence="20"/>
+    <menuitem id="menu_hmis_appointment_list" name="Appointment List" parent="menu_hmis_appointment" action="action_hmis_appointment" sequence="10"/>
+    <menuitem id="menu_hmis_appointment_calendar" name="Appointment Calendar" parent="menu_hmis_appointment" action="action_hmis_appointment_calendar" sequence="20"/>
+    <menuitem id="menu_hmis_appointment_scheduler" name="Schedule Appointment" parent="menu_hmis_appointment" action="action_appointment_wizard" sequence="30"/>
+    
+    <!-- Medical Records -->
+    <menuitem id="menu_hmis_medical" name="Medical Records" parent="menu_hmis_main" sequence="30"/>
+    <menuitem id="menu_hmis_medical_records" name="Patient Records" parent="menu_hmis_medical" action="action_hmis_medical_record" sequence="10"/>
+    <menuitem id="menu_hmis_prescriptions" name="Prescriptions" parent="menu_hmis_medical" action="action_hmis_prescription" sequence="20"/>
+    <menuitem id="menu_hmis_lab_tests" name="Lab Tests" parent="menu_hmis_medical" action="action_hmis_lab_test" sequence="30"/>
+    
+    <!-- Pharmacy -->
+    <menuitem id="menu_hmis_pharmacy" name="Pharmacy" parent="menu_hmis_main" sequence="40"/>
+    <menuitem id="menu_hmis_medicines" name="Medicine Inventory" parent="menu_hmis_pharmacy" action="action_hmis_medicine" sequence="10"/>
+    <menuitem id="menu_hmis_prescription_queue" name="Prescription Queue" parent="menu_hmis_pharmacy" action="action_prescription_queue" sequence="20"/>
+    
+    <!-- Billing -->
+    <menuitem id="menu_hmis_billing" name="Billing" parent="menu_hmis_main" sequence="50"/>
+    <menuitem id="menu_hmis_invoices" name="Invoices" parent="menu_hmis_billing" action="action_hmis_invoice" sequence="10"/>
+    <menuitem id="menu_hmis_insurance" name="Insurance Claims" parent="menu_hmis_billing" action="action_insurance_claims" sequence="20"/>
+    
+    <!-- Reports -->
+    <menuitem id="menu_hmis_reports" name="Reports" parent="menu_hmis_main" sequence="60"/>
+    <menuitem id="menu_hmis_patient_reports" name="Patient Reports" parent="menu_hmis_reports" action="action_patient_report" sequence="10"/>
+    <menuitem id="menu_hmis_medical_reports" name="Medical Reports" parent="menu_hmis_reports" action="action_medical_report" sequence="20"/>
+    <menuitem id="menu_hmis_financial_reports" name="Financial Reports" parent="menu_hmis_reports" action="action_financial_report" sequence="30"/>
+    
+    <!-- Configuration -->
+    <menuitem id="menu_hmis_config" name="Configuration" parent="menu_hmis_main" sequence="70"/>
+    <menuitem id="menu_hmis_doctors" name="Doctors" parent="menu_hmis_config" action="action_hmis_doctor" sequence="10"/>
+    <menuitem id="menu_hmis_departments" name="Departments" parent="menu_hmis_config" action="action_hmis_department" sequence="20"/>
+    <menuitem id="menu_hmis_wards" name="Wards &amp; Beds" parent="menu_hmis_config" action="action_hmis_ward" sequence="30"/>
+    <menuitem id="menu_hmis_settings" name="HMIS Settings" parent="menu_hmis_config" action="action_hmis_config_settings" sequence="40"/>
+
+    <!-- Actions -->
+    <record id="action_hmis_patient" model="ir.actions.act_window">
+        <field name="name">Patients</field>
+        <field name="res_model">hmis.patient</field>
+        <field name="view_mode">tree,form,kanban</field>
+        <field name="view_id" ref="view_hmis_patient_tree"/>
+        <field name="search_view_id" ref="view_hmis_patient_search"/>
+        <field name="context">{'search_default_active': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Register new patients to get started!
+            </p>
+        </field>
+    </record>
+
+    <record id="action_hmis_patient_kanban" model="ir.actions.act_window">
+        <field name="name">Patient Dashboard</field>
+        <field name="res_model">hmis.patient</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_id" ref="view_hmis_patient_kanban"/>
+        <field name="search_view_id" ref="view_hmis_patient_search"/>
+    </record>
+
+    <record id="action_hmis_appointment" model="ir.actions.act_window">
+        <field name="name">Appointments</field>
+        <field name="res_model">hmis.appointment</field>
+        <field name="view_mode">tree,form,calendar</field>
+        <field name="view_id" ref="view_hmis_appointment_tree"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+    <record id="action_hmis_appointment_calendar" model="ir.actions.act_window">
+        <field name="name">Appointment Calendar</field>
+        <field name="res_model">hmis.appointment</field>
+        <field name="view_mode">calendar,tree,form</field>
+        <field name="view_id" ref="view_hmis_appointment_calendar"/>
+    </record>
+
+    <!-- Server Actions -->
+    <record id="action_send_appointment_reminder" model="ir.actions.server">
+        <field name="name">Send Appointment Reminder</field>
+        <field name="model_id" ref="model_hmis_appointment"/>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.action_send_reminder()
+</field>
+    </record>
+
+    <record id="action_bulk_confirm_appointments" model="ir.actions.server">
+        <field name="name">Bulk Confirm Appointments</field>
+        <field name="model_id" ref="model_hmis_appointment"/>
+        <field name="state">code</field>
+        <field name="code">
+if records:
+    action = records.action_bulk_confirm()
+</field>
+    </record>
+</odoo>
+```
+
+## 6. Data Files and Sequences
+
+### `data/hmis_sequences.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Patient Sequence -->
+    <record id="seq_hmis_patient" model="ir.sequence">
+        <field name="name">Patient ID</field>
+        <field name="code">hmis.patient</field>
+        <field name="prefix">PAT</field>
+        <field name="padding">6</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">100001</field>
+        <field name="implementation">standard</field>
+        <field name="use_date_range">False</field>
+    </record>
+
+    <!-- Appointment Sequence -->
+    <record id="seq_hmis_appointment" model="ir.sequence">
+        <field name="name">Appointment Reference</field>
+        <field name="code">hmis.appointment</field>
+        <field name="prefix">APT</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">10001</field>
+        <field name="implementation">standard</field>
+    </record>
+
+    <!-- Prescription Sequence -->
+    <record id="seq_hmis_prescription" model="ir.sequence">
+        <field name="name">Prescription ID</field>
+        <field name="code">hmis.prescription</field>
+        <field name="prefix">RX</field>
+        <field name="padding">6</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">100001</field>
+    </record>
+
+    <!-- Lab Test Sequence -->
+    <record id="seq_hmis_lab_test" model="ir.sequence">
+        <field name="name">Lab Test ID</field>
+        <field name="code">hmis.lab.test</field>
+        <field name="prefix">LAB</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">10001</field>
+    </record>
+
+    <!-- Medical Record Sequence -->
+    <record id="seq_hmis_medical_record" model="ir.sequence">
+        <field name="name">Medical Record ID</field>
+        <field name="code">hmis.medical.record</field>
+        <field name="prefix">MR</field>
+        <field name="padding">6</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">100001</field>
+    </record>
+</odoo>
+```
+
+### `data/appointment_types.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="appointment_type_general" model="hmis.appointment.type">
+        <field name="name">General Consultation</field>
+        <field name="code">GENERAL</field>
+        <field name="duration">0.5</field>
+        <field name="fee">50.0</field>
+    </record>
+
+    <record id="appointment_type_followup" model="hmis.appointment.type">
+        <field name="name">Follow-up</field>
+        <field name="code">FOLLOWUP</field>
+        <field name="duration">0.25</field>
+        <field name="fee">30.0</field>
+    </record>
+
+    <record id="appointment_type_emergency" model="hmis.appointment.type">
+        <field name="name">Emergency</field>
+        <field name="code">EMERGENCY</field>
+        <field name="duration">1.0</field>
+        <field name="fee">100.0</field>
+    </record>
+
+    <record id="appointment_type_surgery" model="hmis.appointment.type">
+        <field name="name">Surgery Consultation</field>
+        <field name="code">SURGERY</field>
+        <field name="duration">1.0</field>
+        <field
